@@ -1,0 +1,10 @@
+{
+  "mcpServers": {
+    "kubevirt-mcp": {
+      "command": "/home/oshoval/project/kubevirt_ai/mcps/kubevirt-mcp/kubevirt-mcp",
+      "args": [],
+      "cwd": "/home/oshoval/project/kubevirt_ai/mcps/kubevirt-mcp",
+      "description": "KubeVirt MCP server for cluster operations"
+    }
+  }
+}

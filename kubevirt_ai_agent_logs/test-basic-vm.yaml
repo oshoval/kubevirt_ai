@@ -1,0 +1,22 @@
+apiVersion: kubevirt.io/v1
+kind: VirtualMachine
+metadata:
+  creationTimestamp: null
+  name: test-basic-vm
+spec:
+  runStrategy: Always
+  template:
+    metadata:
+      creationTimestamp: null
+    spec:
+      domain:
+        devices: {}
+        memory:
+          guest: 512Mi
+        resources: {}
+      terminationGracePeriodSeconds: 0
+      volumes:
+      - containerDisk:
+          image: quay.io/containerdisks/fedora
+        name: test-basic-vm-containerdisk-0
+status: {}

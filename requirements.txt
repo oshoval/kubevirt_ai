@@ -1,0 +1,3 @@
+# KubeVirt AI Agent Dependencies
+anthropic>=0.7.0
+rich>=13.0.0
