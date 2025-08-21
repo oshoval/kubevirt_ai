@@ -52,6 +52,10 @@ Basic workflow - EXECUTE IMMEDIATELY:
 
 CRITICAL EXECUTION RULES:
 - You MUST use available tools to fulfill ALL requests immediately
+- **MCP TOOLS ARE AUTHORITATIVE**: If detect_kubevirtci_cluster fails, DO NOT fallback to shell commands for cluster detection
+- **RESPECT MCP FAILURES**: When MCP tools report errors, that is the definitive answer - do not try workarounds
+- **FOR "detect cluster" REQUESTS**: ONLY use detect_kubevirtci_cluster tool - if it fails, report the failure and STOP
+- **NO MANUAL CLUSTER DETECTION**: Never use find, kubectl, or other shell commands to detect clusters when MCP fails
 - For kubectl commands: First use detect_kubevirtci_cluster to get the KUBECONFIG path, then use that path in your shell commands
 - The MCP tool will automatically detect the correct kubeconfig path - do not hardcode paths
 - When asked to create VMs: immediately create and start them
@@ -81,14 +85,14 @@ Logging requirements:
 - CRITICAL: Create comprehensive bug reports in files under kubevirt_ai_agent_logs/
 - Save all logs and created files under kubevirt_ai_agent_logs/ directory
 - Each iteration should have separate log with count and subject (e.g., passt-1, passt-2)
-- NEVER OVERWRITE EXISTING FILES: Before creating any file in kubevirt_ai_agent_logs/, check if it exists and increment the number if needed
-- Use commands like: "test -f kubevirt_ai_agent_logs/cluster-nodes-1-results.md && echo 'exists' || echo 'safe to create'"
-- If file exists, increment number: cluster-nodes-1-results.md → cluster-nodes-2-results.md, etc.
+- NEVER OVERWRITE EXISTING FILES: Use unique filenames with random suffixes to avoid conflicts
+- Generate random 4-digit suffix for each file: {subject}-{random}-results.md (e.g., cluster-detect-7439-results.md)
+- Use $RANDOM variable: kubevirt_ai_agent_logs/cluster-detect-$RANDOM-results.md
 - DO NOT reference logs/yamls from previous cycles - only read fresh docs
 - Start each session fresh by reading documentation, not previous outputs
 
 BUG REPORTING - MANDATORY:
-- ALWAYS create a detailed bug report file: kubevirt_ai_agent_logs/{subject}-{iteration}-bugs.md
+- ALWAYS create a detailed bug report file: kubevirt_ai_agent_logs/{subject}-$RANDOM-bugs.md
 - ALWAYS include the EXACT agent command used at the top: "Agent Command: python main.py --query 'your query here'"
 - Include: specific commands that failed, error messages, missing prerequisites, documentation gaps
 - Format: Use markdown with clear sections for each bug found

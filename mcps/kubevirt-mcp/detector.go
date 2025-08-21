@@ -13,27 +13,46 @@ type ClusterInfo struct {
 }
 
 func detectKubevirtciCluster() (string, error) {
-	// Check if GLOBAL_KUBECONFIG environment variable is set
+	var kubeconfigPath string
+	var source string
+
+	// First, check if GLOBAL_KUBECONFIG environment variable is set
 	globalKubeconfig := os.Getenv("GLOBAL_KUBECONFIG")
 
-	if globalKubeconfig == "" {
-		return "GLOBAL_KUBECONFIG environment variable is not set", nil
+	if globalKubeconfig != "" {
+		// Check if the GLOBAL_KUBECONFIG file exists
+		if _, err := os.Stat(globalKubeconfig); err == nil {
+			kubeconfigPath = globalKubeconfig
+			source = "GLOBAL_KUBECONFIG"
+		}
 	}
 
-	// Check if the kubeconfig file exists
-	if _, err := os.Stat(globalKubeconfig); os.IsNotExist(err) {
-		return fmt.Sprintf("GLOBAL_KUBECONFIG file does not exist: %s", globalKubeconfig), nil
+	// If GLOBAL_KUBECONFIG not found, try ~/.kube/config
+	if kubeconfigPath == "" {
+		homeDir, err := os.UserHomeDir()
+		if err == nil {
+			defaultKubeconfig := homeDir + "/.kube/config"
+			if _, err := os.Stat(defaultKubeconfig); err == nil {
+				kubeconfigPath = defaultKubeconfig
+				source = "~/.kube/config"
+			}
+		}
+	}
+
+	// If no kubeconfig found
+	if kubeconfigPath == "" {
+		return "No kubeconfig found. Checked GLOBAL_KUBECONFIG environment variable and ~/.kube/config", nil
 	}
 
 	// Test cluster connectivity using the kubeconfig
-	clusterInfo := testClusterConnectivity(globalKubeconfig)
+	clusterInfo := testClusterConnectivity(kubeconfigPath)
 
 	if !clusterInfo.Found {
-		return fmt.Sprintf("Cluster not accessible via GLOBAL_KUBECONFIG\n%s", clusterInfo.Message), nil
+		return fmt.Sprintf("Cluster not accessible via %s (%s)\n%s", source, kubeconfigPath, clusterInfo.Message), nil
 	}
 
 	// Success - cluster is accessible
-	result := fmt.Sprintf(`Cluster Available via GLOBAL_KUBECONFIG
+	result := fmt.Sprintf(`Cluster Available via %s
 
 🔧 Setup Commands:
    export KUBECONFIG=%s
@@ -42,7 +61,7 @@ func detectKubevirtciCluster() (string, error) {
    kubectl get nodes
    kubectl get kubevirt -n kubevirt
 
-✨ Ready to use cluster!`, globalKubeconfig)
+✨ Ready to use cluster!`, source, kubeconfigPath)
 
 	return result, nil
 }
