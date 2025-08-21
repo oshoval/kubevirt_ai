@@ -33,6 +33,12 @@
 - **No cleanup of logs**: Files are debugging evidence, not temporary data
 - **Examples**: ❌ `rm vm-config.yaml` ✅ Keep all generated files forever
 
+### 📝 Documentation - BREVITY PRINCIPLE
+- **Keep documentation short**: 10-20 lines maximum for READMEs
+- **No one reads long docs**: If it's longer than one screen, it's too long
+- **Essential info only**: Installation, usage, what it does - nothing more
+- **Examples**: ❌ 200+ line README ✅ 20 line README with just the basics
+
 ### ✅ Recent Improvements
 1. **Official Anthropic Pattern**: Implemented true `while True` loop with `response.stop_reason == "tool_use"`
 2. **Zero Artificial Limits**: No `max_iterations` in main loop (only safety valve at 50 turns)

@@ -4,11 +4,11 @@ Authentication utilities for Anthropic API in enterprise environments.
 Supports multiple authentication methods including Google Cloud ADC.
 """
 
+import json
 import os
 import subprocess
-import json
-from typing import Optional, Dict, Any
 from pathlib import Path
+from typing import Any, Dict, Optional
 
 import anthropic
 from rich.console import Console
@@ -99,7 +99,7 @@ class AnthropicAuthManager:
                 ["gcloud", "auth", "print-access-token"],
                 capture_output=True,
                 text=True,
-                check=True
+                check=True,
             )
             access_token = result.stdout.strip()
 
@@ -114,7 +114,7 @@ class AnthropicAuthManager:
             project_result = subprocess.run(
                 ["gcloud", "config", "get-value", "project"],
                 capture_output=True,
-                text=True
+                text=True,
             )
             project_id = project_result.stdout.strip()
 
@@ -166,7 +166,7 @@ class AnthropicAuthManager:
                     ["gcloud", "auth", "print-access-token"],
                     capture_output=True,
                     text=True,
-                    check=True
+                    check=True,
                 )
                 access_token = result.stdout.strip()
 
@@ -182,10 +182,7 @@ class AnthropicAuthManager:
             console.print(f"[blue]Using region: {region}[/blue]")
 
             # Create client with Vertex AI configuration
-            client = anthropic.AnthropicVertex(
-                project_id=project_id,
-                region=region
-            )
+            client = anthropic.AnthropicVertex(project_id=project_id, region=region)
 
             console.print("[green]✅ Vertex AI client created successfully[/green]")
             return client
@@ -207,7 +204,7 @@ class AnthropicAuthManager:
             if key_file and Path(key_file).exists():
                 try:
                     with open(key_file) as f:
-                        service_account_info = json.load(f)
+                        json.load(f)
 
                     # This would require company-specific implementation
                     # depending on how service accounts are configured for Anthropic API
@@ -302,9 +299,7 @@ class AnthropicAuthManager:
             os.environ.get("GOOGLE_APPLICATION_CREDENTIALS"),
             os.environ.get("ANTHROPIC_SERVICE_ACCOUNT_KEY"),
         ]
-        methods["service_account"] = any(
-            path and Path(path).exists() for path in key_file_paths
-        )
+        methods["service_account"] = any(path and Path(path).exists() for path in key_file_paths)
 
         # Check Claude Code
         claude_config_paths = [
@@ -345,7 +340,7 @@ def check_auth_status() -> None:
         status = "✅ Available" if is_available else "❌ Not Available"
         console.print(f"{method:<15}: {status}")
 
-    console.print(f"\nRecommended: Use 'auto' to try all methods in order")
+    console.print("\nRecommended: Use 'auto' to try all methods in order")
 
     if not any(available.values()):
         console.print("\n[red]⚠️  No authentication methods available![/red]")
@@ -370,11 +365,11 @@ if __name__ == "__main__":
 
             # Test with a simple API call
             # Use the correct model name for Vertex AI
-            model = "claude-3-5-haiku@20241022" if hasattr(client, 'project_id') else "claude-3-haiku-20240307"
+            model = "claude-3-5-haiku@20241022" if hasattr(client, "project_id") else "claude-3-haiku-20240307"
             response = client.messages.create(
                 model=model,
                 max_tokens=10,
-                messages=[{"role": "user", "content": "Hello"}]
+                messages=[{"role": "user", "content": "Hello"}],
             )
             console.print(f"[green]✅ API test successful: {response.content[0].text[:50]}...[/green]")
 

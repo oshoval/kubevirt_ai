@@ -81,6 +81,9 @@ Logging requirements:
 - CRITICAL: Create comprehensive bug reports in files under kubevirt_ai_agent_logs/
 - Save all logs and created files under kubevirt_ai_agent_logs/ directory
 - Each iteration should have separate log with count and subject (e.g., passt-1, passt-2)
+- NEVER OVERWRITE EXISTING FILES: Before creating any file in kubevirt_ai_agent_logs/, check if it exists and increment the number if needed
+- Use commands like: "test -f kubevirt_ai_agent_logs/cluster-nodes-1-results.md && echo 'exists' || echo 'safe to create'"
+- If file exists, increment number: cluster-nodes-1-results.md → cluster-nodes-2-results.md, etc.
 - DO NOT reference logs/yamls from previous cycles - only read fresh docs
 - Start each session fresh by reading documentation, not previous outputs
 

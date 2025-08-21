@@ -185,30 +185,16 @@ The application supports multiple authentication methods (tried in order when us
 
 ## Testing
 
-The project includes comprehensive unit tests covering all major functionality.
-
-### Running Tests
-
 ```bash
-# Run all tests using the test runner
-python run_tests.py
+# Run unit tests
+make test
 
-# Run tests directly
-python test_main.py
+# Run e2e tests (requires: sudo dnf install bats)
+make e2e-test
 
-# Run with unittest module (verbose)
-python -m unittest test_main.py -v
+# Code quality
+make tox
 ```
-
-### Test Coverage
-
-- **MCPRegistry**: MCP server management functionality
-- **KubeVirtAIAgent**: Main agent initialization and configuration
-- **Configuration Loading**: MCP and prompt loading from files
-- **Error Handling**: Invalid configurations and missing files
-- **Authentication**: Model selection for different client types
-
-All tests use mocking to avoid external dependencies and run in isolated temporary directories.
 
 ## Project Structure
 

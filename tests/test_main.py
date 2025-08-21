@@ -215,9 +215,39 @@ class TestKubeVirtAIAgent(unittest.TestCase):
             with patch('main.console'):  # Suppress console output
                 agent = KubeVirtAIAgent()
                 
-                # Verify Vertex AI model name is used
-                model_name = agent._get_model_name()
-                self.assertEqual(model_name, "claude-3-5-haiku@20241022")
+                # Test regular model (use_fast_model=False)
+                model_name = agent._get_model_name(use_fast_model=False)
+                self.assertEqual(model_name, "claude-sonnet-4@20250514")
+                
+                # Test fast model (use_fast_model=True)
+                fast_model_name = agent._get_model_name(use_fast_model=True)
+                self.assertEqual(fast_model_name, "claude-3-5-haiku@20241022")
+    
+    @patch('main.get_anthropic_client')
+    def test_get_model_name_with_env_vars(self, mock_get_client):
+        """Test that environment variables are properly inherited in tox."""
+        mock_client = Mock()
+        mock_client.project_id = "test-project"  # Vertex AI client
+        mock_get_client.return_value = mock_client
+        
+        with patch('main.Path') as mock_path:
+            mock_path.return_value.parent = Path(self.test_dir)
+            
+            with patch('main.console'):  # Suppress console output
+                # Test with custom environment variables
+                with patch.dict(os.environ, {
+                    'ANTHROPIC_MODEL': 'custom-main-model@123',
+                    'ANTHROPIC_SMALL_FAST_MODEL': 'custom-fast-model@456'
+                }):
+                    agent = KubeVirtAIAgent()
+                    
+                    # Should use environment variable for main model
+                    main_model = agent._get_model_name(use_fast_model=False)
+                    self.assertEqual(main_model, "custom-main-model@123")
+                    
+                    # Should use environment variable for fast model
+                    fast_model = agent._get_model_name(use_fast_model=True)
+                    self.assertEqual(fast_model, "custom-fast-model@456")
     
     @patch('main.get_anthropic_client')
     def test_get_model_name_standard(self, mock_get_client):
@@ -232,11 +262,13 @@ class TestKubeVirtAIAgent(unittest.TestCase):
             mock_path.return_value.parent = Path(self.test_dir)
             
             with patch('main.console'):  # Suppress console output
-                agent = KubeVirtAIAgent()
-                
-                # Verify standard model name is used
-                model_name = agent._get_model_name()
-                self.assertEqual(model_name, "claude-3-5-sonnet-20241022")
+                # Clear environment variables to test defaults
+                with patch.dict(os.environ, {}, clear=True):
+                    agent = KubeVirtAIAgent()
+                    
+                    # Verify standard model name is used (should be the hardcoded default)
+                    model_name = agent._get_model_name()
+                    self.assertEqual(model_name, "claude-3-5-sonnet-20241022")
 
 
 class TestMCPConfigurationLoading(unittest.TestCase):
