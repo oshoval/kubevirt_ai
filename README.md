@@ -15,6 +15,7 @@ AI-powered tools for KubeVirt operations using Anthropic Claude with Vertex AI a
 ## Prerequisites
 
 - Python 3.7+
+- Go 1.23+ (for building MCP tools)
 - Google Cloud SDK (`gcloud`) for Vertex AI authentication
 - Required Python packages:
   - `anthropic`
@@ -28,7 +29,12 @@ git clone <repository-url>
 cd kubevirt_ai
 ```
 
-2. Install dependencies:
+2. Build required tools:
+```bash
+make build
+```
+
+3. Install Python dependencies:
 ```bash
 # Install core dependencies
 pip install -r requirements.txt

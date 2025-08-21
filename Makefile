@@ -1,8 +1,11 @@
-.PHONY: help tox test format lint type-check quality clean e2e-test install-bats
+.PHONY: help tox test format lint type-check quality clean e2e-test install-bats build build-mcp build-vm-exec
 
 # Default target
 help:
 	@echo "Available targets:"
+	@echo "  build      - Build all required binaries (mcp + vm-exec)"
+	@echo "  build-mcp  - Build kubevirt-mcp binary"
+	@echo "  build-vm-exec - Build vm-exec binary"
 	@echo "  tox        - Run default tox environments (format + lint)"
 	@echo "  test       - Run unit tests using tox"
 	@echo "  e2e-test   - Run end-to-end tests with BATS"
@@ -44,6 +47,22 @@ e2e-test:
 # Show BATS installation instructions
 install-bats:
 	@echo "Install BATS: sudo dnf install bats"
+
+# Build all required binaries
+build: build-mcp build-vm-exec
+	@echo "All binaries built successfully in bin/"
+
+# Build kubevirt-mcp binary
+build-mcp:
+	@echo "Building kubevirt-mcp..."
+	cd mcps/kubevirt-mcp && go build -o ../../bin/kubevirt-mcp .
+	@echo "✓ kubevirt-mcp built: bin/kubevirt-mcp"
+
+# Build vm-exec binary
+build-vm-exec:
+	@echo "Building vm-exec..."
+	cd mcps/console && go build -o ../../bin/vm-exec .
+	@echo "✓ vm-exec built: bin/vm-exec"
 
 # Clean tox environments
 clean:

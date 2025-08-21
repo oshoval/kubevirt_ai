@@ -71,13 +71,47 @@ func handleRequest(req JSONRPCRequest) JSONRPCResponse {
 							"properties": map[string]interface{}{},
 						},
 					},
+					{
+						"name":        "vm_exec",
+						"description": "Execute a command on a KubeVirt VM via console connection",
+						"inputSchema": map[string]interface{}{
+							"type": "object",
+							"properties": map[string]interface{}{
+								"namespace": map[string]interface{}{
+									"type":        "string",
+									"description": "Kubernetes namespace containing the VM",
+									"default":     "default",
+								},
+								"vm_name": map[string]interface{}{
+									"type":        "string",
+									"description": "Name of the VM or VMI to execute command on",
+								},
+								"command": map[string]interface{}{
+									"type":        "string",
+									"description": "Command to execute inside the VM",
+								},
+								"timeout": map[string]interface{}{
+									"type":        "integer",
+									"description": "Timeout in seconds (default: 30)",
+									"default":     30,
+								},
+								"verbose": map[string]interface{}{
+									"type":        "boolean",
+									"description": "Enable verbose console logging",
+									"default":     false,
+								},
+							},
+							"required": []string{"vm_name", "command"},
+						},
+					},
 				},
 			},
 		}
 
 	case "tools/call":
 		var params struct {
-			Name string `json:"name"`
+			Name      string          `json:"name"`
+			Arguments json.RawMessage `json:"arguments,omitempty"`
 		}
 		json.Unmarshal(req.Params, &params)
 
@@ -90,6 +124,44 @@ func handleRequest(req JSONRPCRequest) JSONRPCResponse {
 					Error:   &RPCError{Code: -32603, Message: err.Error()},
 				}
 			}
+			return JSONRPCResponse{
+				JSONRPC: "2.0",
+				ID:      req.ID,
+				Result: map[string]interface{}{
+					"content": []map[string]interface{}{
+						{"type": "text", "text": result},
+					},
+				},
+			}
+		}
+
+		if params.Name == "vm_exec" {
+			var vmParams VMExecParams
+			if err := json.Unmarshal(params.Arguments, &vmParams); err != nil {
+				return JSONRPCResponse{
+					JSONRPC: "2.0",
+					ID:      req.ID,
+					Error:   &RPCError{Code: -32602, Message: "Invalid parameters: " + err.Error()},
+				}
+			}
+
+			// Set defaults if not provided
+			if vmParams.Namespace == "" {
+				vmParams.Namespace = "default"
+			}
+			if vmParams.Timeout == 0 {
+				vmParams.Timeout = 30
+			}
+
+			result, err := executeVMCommand(vmParams)
+			if err != nil {
+				return JSONRPCResponse{
+					JSONRPC: "2.0",
+					ID:      req.ID,
+					Error:   &RPCError{Code: -32603, Message: err.Error()},
+				}
+			}
+
 			return JSONRPCResponse{
 				JSONRPC: "2.0",
 				ID:      req.ID,

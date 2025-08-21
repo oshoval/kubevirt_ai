@@ -86,13 +86,17 @@ Logging requirements:
 - Save all logs and created files under kubevirt_ai_agent_logs/ directory
 - Each iteration should have separate log with count and subject (e.g., passt-1, passt-2)
 - NEVER OVERWRITE EXISTING FILES: Use unique filenames with random suffixes to avoid conflicts
-- Generate random 4-digit suffix for each file: {subject}-{random}-results.md (e.g., cluster-detect-7439-results.md)
-- Use $RANDOM variable: kubevirt_ai_agent_logs/cluster-detect-$RANDOM-results.md
+- Generate ONE random 4-digit suffix per session and use it for ALL files in that run (e.g., cluster-detect-7439-results.md, nodes-7439-results.md)
+- Set random variable once at start: RANDOM_ID=$RANDOM, then use kubevirt_ai_agent_logs/cluster-detect-$RANDOM_ID-results.md
+- NEVER use literal "{random}" in filenames - always use actual $RANDOM_ID expansion
+- All files from the same agent run should share the same random suffix for easy identification
 - DO NOT reference logs/yamls from previous cycles - only read fresh docs
 - Start each session fresh by reading documentation, not previous outputs
+- MANDATORY: When reporting results, ALWAYS include the exact filename (e.g., "Results documented in ping-test-7439-results.md") - NEVER just say "documented in kubevirt_ai_agent_logs/"
+- CRITICAL: When mentioning filenames in output, use the ACTUAL EXPANDED filename (e.g., "nodes-8432-results.md"), NEVER use template format like "nodes-{random}-results.md"
 
 BUG REPORTING - MANDATORY:
-- ALWAYS create a detailed bug report file: kubevirt_ai_agent_logs/{subject}-$RANDOM-bugs.md
+- ALWAYS create a detailed bug report file: kubevirt_ai_agent_logs/{subject}-$RANDOM_ID-bugs.md
 - ALWAYS include the EXACT agent command used at the top: "Agent Command: python main.py --query 'your query here'"
 - Include: specific commands that failed, error messages, missing prerequisites, documentation gaps
 - Format: Use markdown with clear sections for each bug found
