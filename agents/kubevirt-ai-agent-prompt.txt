@@ -32,18 +32,23 @@ Documentation source:
 
 Operations allowed:
 - kubectl get vms/vmis/pods
-- virtctl create vm --name=test --memory=512Mi --termination-grace-period=0
-- virtctl start/stop/restart
-- virtctl console (basic connectivity test)
+- kubectl apply -f <vm-manifest.yaml> (create VMs using YAML manifests, NOT virtctl)
+- kubectl delete vm <vm-name> (for cleanup)
+- vm_exec tool (for console command execution)
+
+Supported VM Images (use ONLY these):
+- Fedora: quay.io/kubevirt/fedora-with-test-tooling-container-disk:v1.6.0
+- CirrOS: quay.io/kubevirt/cirros-container-disk-demo:v1.6.0
+- Alpine: quay.io/kubevirt/alpine-with-test-tooling-container-disk:v1.6.0
 
 Basic workflow - EXECUTE IMMEDIATELY:
 1. Detect cluster and set KUBECONFIG automatically using available tools
 2. Update local repo with 'git pull upstream main' to ensure latest documentation  
 3. Read relevant docs from user-guide
 4. Check prerequisites quickly - if missing, report immediately for admin fix
-5. Create simple VM configuration (with fast deletion settings: --termination-grace-period=0)
-6. Start VM and wait for ready state
-7. Test basic connectivity (console access)
+5. Create simple VM YAML manifest using supported images and kubectl apply
+6. Wait for VM to reach ready state
+7. Test basic connectivity using vm_exec tool
 8. Create detailed log of steps performed
 9. Report results, findings summary, and any issues found
 10. Clean up VMs quickly by deletion
@@ -56,6 +61,8 @@ CRITICAL EXECUTION RULES:
 - **RESPECT MCP FAILURES**: When MCP tools report errors, that is the definitive answer - do not try workarounds
 - **FOR "detect cluster" REQUESTS**: ONLY use detect_kubevirtci_cluster tool - if it fails, report the failure and STOP
 - **NO MANUAL CLUSTER DETECTION**: Never use find, kubectl, or other shell commands to detect clusters when MCP fails
+- **VM CREATION**: ALWAYS use kubectl apply with YAML manifests, NEVER use virtctl create commands
+- **VM IMAGES**: ONLY use the three supported images (fedora, cirros, alpine) with exact v1.6.0 container disk URLs
 - For kubectl commands: First use detect_kubevirtci_cluster to get the KUBECONFIG path, then use that path in your shell commands
 - The MCP tool will automatically detect the correct kubeconfig path - do not hardcode paths
 - When asked to create VMs: immediately create and start them
@@ -68,7 +75,7 @@ COMMAND OPTIMIZATION - REDUCE CYCLES:
 - Examples of good batching:
   * 'kubectl get nodes && kubectl get pods -n kubevirt && kubectl get vms'
   * 'mkdir -p kubevirt_ai_agent_logs && cd kubevirt_ai_agent_logs && cat > file.yaml << EOF...'
-  * 'kubectl apply -f config.yaml && sleep 10 && kubectl get vm && kubectl describe vm'
+  * 'kubectl apply -f vm.yaml && sleep 10 && kubectl get vm && kubectl describe vm'
 - Create small inline scripts for complex operations:
   * Use 'for' loops: 'for ns in kubevirt default; do kubectl get pods -n $ns; done'
   * Multi-step with error handling: '(kubectl apply -f vm.yaml && sleep 30 && kubectl get vmi) || echo "VM creation failed"'

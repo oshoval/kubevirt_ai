@@ -1,4 +1,4 @@
-.PHONY: help tox test format lint type-check quality clean e2e-test install-bats build build-mcp build-vm-exec
+.PHONY: help tox test format lint type-check quality clean e2e-test install-bats build build-mcp build-vm-exec cluster-up cluster-down
 
 # Default target
 help:
@@ -6,6 +6,8 @@ help:
 	@echo "  build      - Build all required binaries (mcp + vm-exec)"
 	@echo "  build-mcp  - Build kubevirt-mcp binary"
 	@echo "  build-vm-exec - Build vm-exec binary"
+	@echo "  cluster-up - Setup Kind cluster with KubeVirt"
+	@echo "  cluster-down - Teardown Kind cluster"
 	@echo "  tox        - Run default tox environments (format + lint)"
 	@echo "  test       - Run unit tests using tox"
 	@echo "  e2e-test   - Run end-to-end tests with BATS"
@@ -63,6 +65,19 @@ build-vm-exec:
 	@echo "Building vm-exec..."
 	cd mcps/console && go build -o ../../bin/vm-exec .
 	@echo "✓ vm-exec built: bin/vm-exec"
+
+# Setup Kind cluster with KubeVirt
+cluster-up:
+	@echo "Setting up Kind cluster with KubeVirt..."
+	@bash -c "source tests/e2e/setup_suite.bash && setup_suite"
+	@echo "✓ Cluster setup complete"
+
+# Teardown Kind cluster
+cluster-down:
+	@echo "Tearing down Kind cluster..."
+	@kind delete cluster --name kind || echo "Cluster may not exist"
+	@rm -f kind-kubeconfig || true
+	@echo "✓ Cluster teardown complete"
 
 # Clean tox environments
 clean:

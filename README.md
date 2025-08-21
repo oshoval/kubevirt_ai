@@ -43,12 +43,17 @@ pip install -r requirements.txt
 pip install anthropic rich
 ```
 
+4. (Optional) Set up Kind cluster with KubeVirt:
+```bash
+make cluster-up
+```
+
 For development work, install additional tools:
 ```bash
 pip install -r requirements-dev.txt
 ```
 
-3. Set up authentication (choose one):
+5. Set up authentication (choose one):
 
 ### Vertex AI Authentication (Recommended)
 ```bash
