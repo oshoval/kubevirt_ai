@@ -25,7 +25,7 @@ mcps/
 
 ### kubevirt-mcp
 - **Description**: KubeVirt MCP server for cluster operations
-- **Source**: `/home/oshoval/work/kubevirt-mcp`
+- **Source**: `$HOME/work/kubevirt-mcp` (or your local development path)
 - **Version**: vendored
 - **Binary**: `kubevirt-mcp/kubevirt-mcp`
 
@@ -39,7 +39,7 @@ MCPs are automatically loaded from the configuration in `config/mcps.json`. The 
     "kubevirt-mcp": {
       "command": "./mcps/kubevirt-mcp/kubevirt-mcp",
       "args": [],
-      "cwd": "/home/oshoval/project/kubevirt",
+      "cwd": ".",
       "description": "KubeVirt MCP server for cluster operations (vendored)"
     }
   }

@@ -96,14 +96,20 @@ Example configuration:
 {
   "mcpServers": {
     "kubevirt-mcp": {
-      "command": "./mcps/kubevirt-mcp/kubevirt-mcp",
+      "command": "./bin/kubevirt-mcp",
       "args": [],
-      "cwd": "/home/oshoval/project/kubevirt",
+      "cwd": ".",
       "description": "KubeVirt MCP server for cluster operations"
     }
   }
 }
 ```
+
+**Path Configuration Best Practices:**
+- Use relative paths starting with `./` for commands within the project
+- Set `cwd` to `"."` to use the project root as working directory
+- Use environment variables like `$HOME` for user-specific paths in documentation
+- Avoid hardcoding absolute paths with usernames
 
 #### Vendored MCPs
 

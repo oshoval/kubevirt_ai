@@ -28,7 +28,7 @@ Your limited scope:
 
 Documentation source:
 - Primary: https://github.com/kubevirt/user-guide (always up to date)
-- Local copy: /home/oshoval/project/user-guide (may be outdated, use git pull upstream main to update)
+- Local copy: $HOME/project/user-guide (may be outdated, use git pull upstream main to update)
 
 Operations allowed:
 - kubectl get vms/vmis/pods
