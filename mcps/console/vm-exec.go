@@ -350,20 +350,63 @@ func (ve *VMExec) loginToAlpine(expecter expect.Expecter, vmi *v1.VirtualMachine
 	return err
 }
 
-func (ve *VMExec) runCommandOnConsole(expecter expect.Expecter, command string) (string, int, error) {
-	// Send command
-	if err := expecter.Send(command + "\n"); err != nil {
-		return "", 1, fmt.Errorf("failed to send command: %v", err)
+// safeExpectBatch validates that the commands arrive to the console properly.
+// It is based on ExpectBatchWithValidatedSend from KubeVirt's console package.
+func (ve *VMExec) safeExpectBatch(expecter expect.Expecter, batch []expect.Batcher, timeout time.Duration) ([]expect.BatchRes, error) {
+	sendFlag := false
+	expectFlag := false
+	previousSend := ""
+
+	const minimumRequiredBatches = 2
+	if len(batch) < minimumRequiredBatches {
+		return nil, fmt.Errorf("safeExpectBatch requires at least 2 batchers, supplied %v", batch)
 	}
 
-	// Wait for command completion and capture output using batch
+	for i, batcher := range batch {
+		switch batcher.Cmd() {
+		case expect.BatchExpect:
+			if expectFlag {
+				return nil, fmt.Errorf("two sequential expect.BExp are not allowed")
+			}
+			expectFlag = true
+			sendFlag = false
+			if _, ok := batch[i].(*expect.BExp); !ok {
+				return nil, fmt.Errorf("safeExpectBatch support only expect of type BExp")
+			}
+			bExp, _ := batch[i].(*expect.BExp)
+			previousSend = regexp.QuoteMeta(previousSend)
+
+			// Remove the \n since it is translated by the console to \r\n.
+			previousSend = strings.TrimSuffix(previousSend, "\n")
+			bExp.R = fmt.Sprintf("%s%s%s", previousSend, "((?s).*)", bExp.R)
+		case expect.BatchSend:
+			if sendFlag {
+				return nil, fmt.Errorf("two sequential expect.BSend are not allowed")
+			}
+			sendFlag = true
+			expectFlag = false
+			previousSend = batcher.Arg()
+		case expect.BatchSwitchCase:
+			return nil, fmt.Errorf("safeExpectBatch doesn't support BatchSwitchCase")
+		default:
+			return nil, fmt.Errorf("unknown command: safeExpectBatch supports only BatchExpect and BatchSend")
+		}
+	}
+
+	res, err := expecter.ExpectBatch(batch, timeout)
+	return res, err
+}
+
+func (ve *VMExec) runCommandOnConsole(expecter expect.Expecter, command string) (string, int, error) {
+	// Use SafeExpectBatch to ensure commands are sent properly
 	b := []expect.Batcher{
+		&expect.BSnd{S: command + "\n"},
 		&expect.BExp{R: PromptExpression}, // Wait for prompt after command
 		&expect.BSnd{S: "echo $?\n"},      // Send exit code check
 		&expect.BExp{R: PromptExpression}, // Wait for prompt after exit code
 	}
 
-	res, err := expecter.ExpectBatch(b, ve.timeout)
+	res, err := ve.safeExpectBatch(expecter, b, ve.timeout)
 	if err != nil {
 		return "", 1, fmt.Errorf("command execution failed: %v", err)
 	}
@@ -372,20 +415,51 @@ func (ve *VMExec) runCommandOnConsole(expecter expect.Expecter, command string) 
 	var output string
 	var exitCode int = 0
 
-	if len(res) >= 2 {
-		// Parse command output from the second buffer (after echo $?)
-		// Buffer format: "whoami\r\nroot\r\n[root@vmi2 fedora]# echo $?\r\n0\r\n[root@vmi2"
-		buffer := res[1].Output
+	if len(res) >= 1 {
+		// With SafeExpectBatch, the command output is in the first expect result
+		// Buffer contains: command + output + prompt
+		buffer := res[0].Output
 
-		// Extract command output between command and "echo $?"
+		if ve.verbose {
+			fmt.Printf("Debug: First buffer content: %q\n", buffer)
+		}
+
+		// Extract command output after the validated command
+		// The SafeExpectBatch modifies the regex to include the command, so we look for it
 		commandPrefix := command + "\r\n"
 		if idx := strings.Index(buffer, commandPrefix); idx != -1 {
 			start := idx + len(commandPrefix)
 			remaining := buffer[start:]
 
-			// Find the end of command output (before "echo $?")
+			// Find the end of command output (before the prompt)
 			if endIdx := strings.Index(remaining, "\r\n["); endIdx != -1 {
 				output = remaining[:endIdx]
+			} else {
+				// Fallback: take everything until the end if no clear prompt boundary
+				output = strings.TrimSpace(remaining)
+			}
+		} else {
+			// Fallback: if we can't find the command prefix, try to extract from the full buffer
+			// Look for the pattern after any initial content
+			lines := strings.Split(buffer, "\r\n")
+			var outputLines []string
+			foundCommand := false
+
+			for _, line := range lines {
+				if strings.Contains(line, command) {
+					foundCommand = true
+					continue
+				}
+				if foundCommand && (strings.Contains(line, "]$") || strings.Contains(line, "]#")) {
+					break
+				}
+				if foundCommand && line != "" {
+					outputLines = append(outputLines, line)
+				}
+			}
+
+			if len(outputLines) > 0 {
+				output = strings.Join(outputLines, "\n")
 			}
 		}
 
