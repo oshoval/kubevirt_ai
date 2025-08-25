@@ -30,6 +30,7 @@ class KubeVirtAIAgent:
         self.auth_method = auth_method
         self.client = None
         self.mcp_registry = MCPRegistry()
+        self.config = self._load_config()
         self.agent_prompt = self._load_agent_prompt()
 
         # Initialize authentication
@@ -38,35 +39,39 @@ class KubeVirtAIAgent:
         # Initialize MCP servers
         self._initialize_mcps()
 
-    def _initialize_mcps(self):
-        """Initialize MCP servers from config/config.json configuration file."""
-        mcps_config_path = Path(__file__).parent / "config" / "config.json"
+    def _load_config(self) -> Dict[str, Any]:
+        """Load configuration from config/config.json."""
+        config_path = Path(__file__).parent / "config" / "config.json"
 
         try:
-            if not mcps_config_path.exists():
-                console.print(f"[yellow]Warning: config/config.json not found at {mcps_config_path}[/yellow]")
-                console.print("[yellow]No MCP servers will be loaded[/yellow]")
-                return
+            if not config_path.exists():
+                console.print(f"[yellow]Warning: config/config.json not found at {config_path}[/yellow]")
+                return {}
 
-            with open(mcps_config_path, "r") as f:
-                mcps_config = json.load(f)
+            with open(config_path, "r") as f:
+                config = json.load(f)
 
-            mcp_servers = mcps_config.get("mcpServers", {})
-            if not mcp_servers:
-                console.print("[yellow]No MCP servers found in config.json[/yellow]")
-                return
-
-            for name, config in mcp_servers.items():
-                self.add_mcp(name, config)
-
-            console.print(f"[green]Loaded {len(mcp_servers)} MCP server(s) from config.json[/green]")
+            console.print("[green]Loaded configuration from config.json[/green]")
+            return config
 
         except json.JSONDecodeError as e:
             console.print(f"[red]Error parsing config.json: {e}[/red]")
-            console.print("[yellow]No MCP servers will be loaded[/yellow]")
+            return {}
         except Exception as e:
             console.print(f"[red]Error loading config.json: {e}[/red]")
-            console.print("[yellow]No MCP servers will be loaded[/yellow]")
+            return {}
+
+    def _initialize_mcps(self):
+        """Initialize MCP servers from the loaded configuration."""
+        mcp_servers = self.config.get("mcpServers", {})
+        if not mcp_servers:
+            console.print("[yellow]No MCP servers found in config.json[/yellow]")
+            return
+
+        for name, config in mcp_servers.items():
+            self.add_mcp(name, config)
+
+        console.print(f"[green]Loaded {len(mcp_servers)} MCP server(s) from config.json[/green]")
 
     def _authenticate(self):
         """Authenticate with Anthropic API using specified method."""
@@ -79,16 +84,22 @@ class KubeVirtAIAgent:
             raise
 
     def _load_agent_prompt(self) -> str:
-        """Load the agent prompt from the agents folder."""
-        prompt_path = Path(__file__).parent / "agents" / "kubevirt-ai-agent-prompt.txt"
+        """Load the agent prompt from the configured path."""
+        agent_path = self.config.get("agent")
+        if not agent_path:
+            console.print("[red]No agent path configured in config.json[/red]")
+            raise ValueError("Agent path must be configured in config.json")
+
+        prompt_path = Path(__file__).parent / agent_path
+
         try:
             with open(prompt_path, "r") as f:
                 prompt = f.read()
             console.print(f"[green]Loaded agent prompt from: {prompt_path}[/green]")
             return prompt
         except Exception as e:
-            console.print(f"[red]Failed to load agent prompt: {e}[/red]")
-            return "You are a helpful KubeVirt assistant."
+            console.print(f"[red]Failed to load agent prompt from {prompt_path}: {e}[/red]")
+            raise
 
     def add_mcp(self, name: str, config: Dict[str, Any]):
         """Add an MCP server to the registry."""

@@ -80,8 +80,11 @@ class TestKubeVirtAIAgent(unittest.TestCase):
         self.test_dir = tempfile.mkdtemp()
         # Create config directory structure
         (Path(self.test_dir) / "config").mkdir(exist_ok=True)
-        self.test_mcps_file = Path(self.test_dir) / "config" / "config.json"
-        self.test_agent_prompt = Path(self.test_dir) / "agents" / "kubevirt-ai-agent-prompt.txt"
+        self.test_config_file = Path(self.test_dir) / "config" / "config.json"
+        
+        # Agent path that will be used in test config
+        self.agent_path = "agents/kubevirt-ai-agent-prompt.txt"
+        self.test_agent_prompt = Path(self.test_dir) / self.agent_path
         
         # Create test directories
         (Path(self.test_dir) / "agents").mkdir(exist_ok=True)
@@ -90,6 +93,12 @@ class TestKubeVirtAIAgent(unittest.TestCase):
         with open(self.test_agent_prompt, 'w') as f:
             f.write("You are a test KubeVirt assistant.")
     
+    def _create_minimal_config(self):
+        """Create a minimal config.json with just the agent field."""
+        config = {"agent": self.agent_path}
+        with open(self.test_config_file, 'w') as f:
+            json.dump(config, f)
+    
     def tearDown(self):
         """Clean up test fixtures."""
         import shutil
@@ -97,9 +106,12 @@ class TestKubeVirtAIAgent(unittest.TestCase):
     
     @patch('main.get_anthropic_client')
     def test_agent_initialization_no_mcps(self, mock_get_client):
-        """Test agent initialization when no config.json exists."""
+        """Test agent initialization when config.json has no MCPs."""
         mock_client = Mock()
         mock_get_client.return_value = mock_client
+        
+        # Create minimal config with no MCPs
+        self._create_minimal_config()
         
         with patch('main.Path') as mock_path:
             # Mock the Path to point to our test directory
@@ -120,7 +132,8 @@ class TestKubeVirtAIAgent(unittest.TestCase):
         mock_get_client.return_value = mock_client
         
         # Create test config.json
-        test_mcps = {
+        test_config = {
+            "agent": self.agent_path,
             "mcpServers": {
                 "test-server": {
                     "command": "/test/command",
@@ -131,8 +144,8 @@ class TestKubeVirtAIAgent(unittest.TestCase):
             }
         }
         
-        with open(self.test_mcps_file, 'w') as f:
-            json.dump(test_mcps, f)
+        with open(self.test_config_file, 'w') as f:
+            json.dump(test_config, f)
         
         with patch('main.Path') as mock_path:
             # Mock the Path to point to our test directory
@@ -154,7 +167,7 @@ class TestKubeVirtAIAgent(unittest.TestCase):
         mock_get_client.return_value = mock_client
         
         # Create invalid JSON file
-        with open(self.test_mcps_file, 'w') as f:
+        with open(self.test_config_file, 'w') as f:
             f.write('{"invalid": json content}')
         
         with patch('main.Path') as mock_path:
@@ -162,16 +175,19 @@ class TestKubeVirtAIAgent(unittest.TestCase):
             mock_path.return_value.parent = Path(self.test_dir)
             
             with patch('main.console'):  # Suppress console output
-                agent = KubeVirtAIAgent()
-                
-                # Verify no MCPs were loaded due to invalid JSON
-                self.assertEqual(len(agent.list_mcps()), 0)
+                # Should fail because invalid JSON means no agent config
+                with self.assertRaises(ValueError) as context:
+                    KubeVirtAIAgent()
+                self.assertIn("Agent path must be configured", str(context.exception))
     
     @patch('main.get_anthropic_client')
     def test_load_agent_prompt(self, mock_get_client):
         """Test loading agent prompt from file."""
         mock_client = Mock()
         mock_get_client.return_value = mock_client
+        
+        # Create minimal config with agent
+        self._create_minimal_config()
         
         with patch('main.Path') as mock_path:
             # Mock the Path to point to our test directory
@@ -189,7 +205,8 @@ class TestKubeVirtAIAgent(unittest.TestCase):
         mock_client = Mock()
         mock_get_client.return_value = mock_client
         
-        # Remove the agent prompt file
+        # Create config but remove the agent prompt file
+        self._create_minimal_config()
         os.remove(self.test_agent_prompt)
         
         with patch('main.Path') as mock_path:
@@ -197,10 +214,9 @@ class TestKubeVirtAIAgent(unittest.TestCase):
             mock_path.return_value.parent = Path(self.test_dir)
             
             with patch('main.console'):  # Suppress console output
-                agent = KubeVirtAIAgent()
-                
-                # Verify default prompt is used
-                self.assertEqual(agent.agent_prompt, "You are a helpful KubeVirt assistant.")
+                # Should fail because agent file is missing
+                with self.assertRaises(FileNotFoundError):
+                    KubeVirtAIAgent()
     
     @patch('main.get_anthropic_client')
     def test_get_model_name_vertex_ai(self, mock_get_client):
@@ -208,6 +224,9 @@ class TestKubeVirtAIAgent(unittest.TestCase):
         mock_client = Mock()
         mock_client.project_id = "test-project"  # Vertex AI client has project_id
         mock_get_client.return_value = mock_client
+        
+        # Create minimal config with agent
+        self._create_minimal_config()
         
         with patch('main.Path') as mock_path:
             mock_path.return_value.parent = Path(self.test_dir)
@@ -229,6 +248,9 @@ class TestKubeVirtAIAgent(unittest.TestCase):
         mock_client = Mock()
         mock_client.project_id = "test-project"  # Vertex AI client
         mock_get_client.return_value = mock_client
+        
+        # Create minimal config with agent
+        self._create_minimal_config()
         
         with patch('main.Path') as mock_path:
             mock_path.return_value.parent = Path(self.test_dir)
@@ -257,6 +279,9 @@ class TestKubeVirtAIAgent(unittest.TestCase):
         if hasattr(mock_client, 'project_id'):
             delattr(mock_client, 'project_id')
         mock_get_client.return_value = mock_client
+        
+        # Create minimal config with agent
+        self._create_minimal_config()
         
         with patch('main.Path') as mock_path:
             mock_path.return_value.parent = Path(self.test_dir)

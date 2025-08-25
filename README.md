@@ -94,6 +94,7 @@ Example configuration:
 
 ```json
 {
+  "agent": "agents/kubevirt-ai-agent-prompt.txt",
   "mcpServers": {
     "kubevirt-mcp": {
       "command": "./bin/kubevirt-mcp",
@@ -104,6 +105,10 @@ Example configuration:
   }
 }
 ```
+
+**Configuration Fields:**
+- `agent`: Path to the AI agent prompt file (required)
+- `mcpServers`: Object containing MCP server configurations
 
 **Path Configuration Best Practices:**
 - Use relative paths starting with `./` for commands within the project

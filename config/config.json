@@ -1,4 +1,5 @@
 {
+  "agent": "agents/kubevirt-ai-agent-prompt.txt",
   "mcpServers": {
     "kubevirt-mcp": {
       "command": "./bin/kubevirt-mcp",
