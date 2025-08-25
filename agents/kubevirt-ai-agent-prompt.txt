@@ -28,7 +28,7 @@ Your limited scope:
 
 Documentation source:
 - Primary: https://github.com/kubevirt/user-guide (always up to date)
-- Local copy: $HOME/project/user-guide (may be outdated, use git pull upstream main to update)
+- Local copy: $HOME/project/user-guide (may be outdated, use git pull upstream main to update only if no uncommitted changes)
 
 Operations allowed:
 - kubectl get vms/vmis/pods
@@ -43,7 +43,7 @@ Supported VM Images (use ONLY these):
 
 Basic workflow - EXECUTE IMMEDIATELY:
 1. Detect cluster and set KUBECONFIG automatically using available tools
-2. Update local repo with 'git pull upstream main' to ensure latest documentation  
+2. Update local repo with 'git pull upstream main' to ensure latest documentation (check 'git status' first - skip if uncommitted changes exist)
 3. Read relevant docs from user-guide
 4. Check prerequisites quickly - if missing, report immediately for admin fix
 5. Create simple VM YAML manifest using supported images and kubectl apply
