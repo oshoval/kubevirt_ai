@@ -80,7 +80,8 @@ class KubeVirtAIAgent:
             self.client = get_anthropic_client(self.auth_method)
             console.print("[green]Successfully authenticated with Anthropic API[/green]")
         except Exception as e:
-            console.print(f"[red]Authentication failed: {e}[/red]")
+            error_msg = f"Authentication failed: {e}"
+            self._safe_print_error(error_msg)
             raise
 
     def _load_agent_prompt(self) -> str:
@@ -125,13 +126,16 @@ class KubeVirtAIAgent:
             console.print(f"[green]✓ MCP tool '{tool_name}' executed successfully[/green]")
             return result
         except Exception as e:
-            console.print(f"[red]✗ MCP tool '{tool_name}' failed: {e}[/red]")
+            error_msg = f"MCP tool '{tool_name}' failed: {e}"
+            self._safe_print_error(error_msg)
             raise
 
     async def execute_shell_command(self, command: str) -> str:
         """Execute a shell command and return the result."""
         try:
-            console.print(f"[blue]Executing: {command}[/blue]")
+            # Escape Rich markup in command to prevent parsing errors
+            safe_command = command.replace("[", "\\[").replace("]", "\\]")
+            console.print(f"[blue]Executing: {safe_command}[/blue]")
 
             result = subprocess.run(command, shell=True, capture_output=True, text=True, timeout=30)
 
@@ -148,11 +152,11 @@ class KubeVirtAIAgent:
 
         except subprocess.TimeoutExpired:
             error_msg = "Command timed out after 30 seconds"
-            console.print(f"[red]✗ {error_msg}[/red]")
+            self._safe_print_error(error_msg)
             return error_msg
         except Exception as e:
             error_msg = f"Failed to execute command: {e}"
-            console.print(f"[red]✗ {error_msg}[/red]")
+            self._safe_print_error(error_msg)
             return error_msg
 
     async def process_query(self, user_query: str, filename: str = None) -> str:
@@ -167,7 +171,9 @@ class KubeVirtAIAgent:
             AI agent response
         """
         try:
-            console.print(f"[blue]Processing query: {user_query}[/blue]")
+            # Escape Rich markup in user query to prevent parsing errors
+            safe_query = user_query.replace("[", "\\[").replace("]", "\\]")
+            console.print(f"[blue]Processing query: {safe_query}[/blue]")
 
             # Ensure MCP servers are connected
             await self.connect_mcps()
@@ -212,8 +218,6 @@ class KubeVirtAIAgent:
                         tool_result = await self._execute_tool_call(tool_call)
 
                         # Add tool result to conversation
-                        # Sanitize tool result to prevent XML/HTML tag parsing issues
-                        sanitized_result = self._sanitize_tool_result(tool_result)
                         messages.append(
                             {
                                 "role": "user",
@@ -221,7 +225,7 @@ class KubeVirtAIAgent:
                                     {
                                         "type": "tool_result",
                                         "tool_use_id": tool_call.id,
-                                        "content": sanitized_result,
+                                        "content": tool_result,
                                     }
                                 ],
                             }
@@ -260,19 +264,10 @@ class KubeVirtAIAgent:
                 text_content += content_block.text
         return text_content
 
-    def _sanitize_tool_result(self, content: str) -> str:
-        """Sanitize tool result content to prevent XML/HTML tag parsing issues."""
-        if not isinstance(content, str):
-            content = str(content)
-
-        # Replace characters that could be misinterpreted as XML/HTML tags
-        # Focus on the specific pattern that caused the error: [/opt/cni/bin\]
-        content = content.replace('[/', '[_/')  # Prevent [/path] from being seen as closing tag
-        content = content.replace('\\]', '_]')  # Prevent escaped brackets
-        content = content.replace('<', '&lt;')  # Escape actual HTML/XML brackets
-        content = content.replace('>', '&gt;')
-
-        return content
+    def _safe_print_error(self, message: str):
+        """Safely print error message, escaping Rich markup characters."""
+        safe_message = message.replace("[", "\\[").replace("]", "\\]")
+        console.print(f"[red]✗ {safe_message}[/red]")
 
     async def _execute_tool_call(self, tool_call):
         """Execute a single tool call and return the result."""
