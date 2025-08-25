@@ -251,7 +251,15 @@ class KubeVirtAIAgent:
         """Execute a single tool call and return the result."""
         tool_name = tool_call.name
         tool_input = tool_call.input
-        console.print(f"[blue]Executing tool: {tool_name}[/blue]")
+
+        if tool_name == "vm_exec" and tool_input:
+            namespace = tool_input.get("namespace", "")
+            vm_name = tool_input.get("vm_name", "")
+            command = tool_input.get("command", "")
+            console.print(f"[blue]Executing tool: {tool_name}[/blue]")
+            console.print(f"[dim]  → Running '{command}' on VM '{vm_name}' in namespace '{namespace}'[/dim]")
+        else:
+            console.print(f"[blue]Executing tool: {tool_name}[/blue]")
 
         # Check if it's a built-in shell command tool
         if tool_name == "execute_shell_command":
@@ -270,7 +278,9 @@ class KubeVirtAIAgent:
                 tool_result = f"Tool '{tool_name}' not found"
                 console.print(f"[red]✗ {tool_result}[/red]")
 
-        console.print(f"[green]✓ Tool {tool_name} executed successfully[/green]")
+        # Success message for non-MCP tools only (MCP tools print their own success messages)
+        if tool_name == "execute_shell_command":
+            console.print(f"[green]✓ Tool {tool_name} executed successfully[/green]")
         return tool_result
 
     def _get_model_name(self, use_fast_model: bool = False) -> str:
