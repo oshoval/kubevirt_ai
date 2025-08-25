@@ -212,6 +212,8 @@ class KubeVirtAIAgent:
                         tool_result = await self._execute_tool_call(tool_call)
 
                         # Add tool result to conversation
+                        # Sanitize tool result to prevent XML/HTML tag parsing issues
+                        sanitized_result = self._sanitize_tool_result(tool_result)
                         messages.append(
                             {
                                 "role": "user",
@@ -219,7 +221,7 @@ class KubeVirtAIAgent:
                                     {
                                         "type": "tool_result",
                                         "tool_use_id": tool_call.id,
-                                        "content": tool_result,
+                                        "content": sanitized_result,
                                     }
                                 ],
                             }
@@ -257,6 +259,20 @@ class KubeVirtAIAgent:
             if hasattr(content_block, "type") and content_block.type == "text":
                 text_content += content_block.text
         return text_content
+
+    def _sanitize_tool_result(self, content: str) -> str:
+        """Sanitize tool result content to prevent XML/HTML tag parsing issues."""
+        if not isinstance(content, str):
+            content = str(content)
+
+        # Replace characters that could be misinterpreted as XML/HTML tags
+        # Focus on the specific pattern that caused the error: [/opt/cni/bin\]
+        content = content.replace('[/', '[_/')  # Prevent [/path] from being seen as closing tag
+        content = content.replace('\\]', '_]')  # Prevent escaped brackets
+        content = content.replace('<', '&lt;')  # Escape actual HTML/XML brackets
+        content = content.replace('>', '&gt;')
+
+        return content
 
     async def _execute_tool_call(self, tool_call):
         """Execute a single tool call and return the result."""
