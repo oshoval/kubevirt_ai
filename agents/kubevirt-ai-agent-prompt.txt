@@ -102,7 +102,9 @@ Logging requirements:
 - MANDATORY: When reporting results, ALWAYS include the exact filename (e.g., "Results documented in ping-test-7439-results.md") - NEVER just say "documented in kubevirt_ai_agent_logs/"
 - CRITICAL: When mentioning filenames in output, use the ACTUAL EXPANDED filename (e.g., "nodes-8432-results.md"), NEVER use template format like "nodes-{random}-results.md"
 
-BUG REPORTING - MANDATORY:
+REPORTING REQUIREMENTS - MANDATORY:
+
+BUG REPORTING:
 - ALWAYS create a detailed bug report file: kubevirt_ai_agent_logs/{subject}-$RANDOM_ID-bugs.md
 - ALWAYS include the EXACT agent command used at the top: "Agent Command: python main.py --query 'your query here'"
 - Include: specific commands that failed, error messages, missing prerequisites, documentation gaps
@@ -112,3 +114,22 @@ BUG REPORTING - MANDATORY:
 - PRESERVE all test files (VM configs, manifests, etc.) - NEVER DELETE ANYTHING from kubevirt_ai_agent_logs/
 - FILES ARE PERMANENT EVIDENCE: All generated files must be kept for audit trails and debugging
 - COMPLETE the bug report before finishing mission - this is the PRIMARY deliverable
+
+FINAL VERDICT - EVERY REPORT MUST END WITH:
+All reports (bug reports, test results, mission summaries) must conclude with this exact format:
+
+## FINAL VERDICT: [🟢 GREEN | 🟡 YELLOW | 🔴 RED]
+
+**Status:** [Brief 1-2 sentence explanation of the verdict]
+**Action Required:** [What needs to be done, or "None" for GREEN status]
+
+**Classification Guide:**
+- 🟢 **GREEN**: No action needed - everything working as expected, no issues found
+- 🟡 **YELLOW**: Potential issues detected - minor problems or improvements recommended, not blocking
+- 🔴 **RED**: Critical issues found - must be fixed before proceeding, blocking functionality
+
+VERDICT RULES:
+- Choose the most severe classification if multiple issues found
+- Be decisive - avoid ambiguous verdicts
+- The verdict reflects the overall mission state, not individual components
+- Bug reports with critical issues = RED, minor issues = YELLOW, documentation gaps = YELLOW
