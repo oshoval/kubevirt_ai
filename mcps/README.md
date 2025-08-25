@@ -31,7 +31,7 @@ mcps/
 
 ## Usage
 
-MCPs are automatically loaded from the configuration in `config/mcps.json`. The configuration references the vendored binaries using relative paths:
+MCPs are automatically loaded from the configuration in `config/config.json`. The configuration references the vendored binaries using relative paths:
 
 ```json
 {
@@ -89,7 +89,7 @@ To vendor a new MCP:
    chmod +x mcps/new-mcp-name/mcp-binary
    ```
 
-3. Add configuration to `config/mcps.json`:
+3. Add configuration to `config/config.json`:
    ```json
    {
      "mcpServers": {

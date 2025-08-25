@@ -86,7 +86,7 @@ export ANTHROPIC_SMALL_FAST_MODEL='claude-3-5-haiku@20241022'
 
 ### MCP Servers
 
-MCP servers are configured in `config/mcps.json` and vendored in the `mcps/` directory for consistency and reliability.
+MCP servers are configured in `config/config.json` and vendored in the `mcps/` directory for consistency and reliability.
 
 #### Configuration
 
@@ -226,7 +226,7 @@ kubevirt_ai/
 ├── agents/
 │   └── kubevirt-ai-agent-prompt.txt  # AI agent system prompt
 ├── config/
-│   └── mcps.json        # MCP server configuration
+│   └── config.json      # MCP server configuration
 ├── mcps/                # Vendored MCP servers
 │   ├── README.md        # MCP documentation
 │   └── kubevirt-mcp/    # KubeVirt MCP server
@@ -245,7 +245,7 @@ kubevirt_ai/
 
 ### Adding New MCP Servers
 
-1. Add the server configuration to `config/mcps.json`:
+1. Add the server configuration to `config/config.json`:
 ```json
 {
   "mcpServers": {

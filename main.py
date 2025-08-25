@@ -39,12 +39,12 @@ class KubeVirtAIAgent:
         self._initialize_mcps()
 
     def _initialize_mcps(self):
-        """Initialize MCP servers from config/mcps.json configuration file."""
-        mcps_config_path = Path(__file__).parent / "config" / "mcps.json"
+        """Initialize MCP servers from config/config.json configuration file."""
+        mcps_config_path = Path(__file__).parent / "config" / "config.json"
 
         try:
             if not mcps_config_path.exists():
-                console.print(f"[yellow]Warning: config/mcps.json not found at {mcps_config_path}[/yellow]")
+                console.print(f"[yellow]Warning: config/config.json not found at {mcps_config_path}[/yellow]")
                 console.print("[yellow]No MCP servers will be loaded[/yellow]")
                 return
 
@@ -53,19 +53,19 @@ class KubeVirtAIAgent:
 
             mcp_servers = mcps_config.get("mcpServers", {})
             if not mcp_servers:
-                console.print("[yellow]No MCP servers found in mcps.json[/yellow]")
+                console.print("[yellow]No MCP servers found in config.json[/yellow]")
                 return
 
             for name, config in mcp_servers.items():
                 self.add_mcp(name, config)
 
-            console.print(f"[green]Loaded {len(mcp_servers)} MCP server(s) from mcps.json[/green]")
+            console.print(f"[green]Loaded {len(mcp_servers)} MCP server(s) from config.json[/green]")
 
         except json.JSONDecodeError as e:
-            console.print(f"[red]Error parsing mcps.json: {e}[/red]")
+            console.print(f"[red]Error parsing config.json: {e}[/red]")
             console.print("[yellow]No MCP servers will be loaded[/yellow]")
         except Exception as e:
-            console.print(f"[red]Error loading mcps.json: {e}[/red]")
+            console.print(f"[red]Error loading config.json: {e}[/red]")
             console.print("[yellow]No MCP servers will be loaded[/yellow]")
 
     def _authenticate(self):

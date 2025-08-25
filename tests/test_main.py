@@ -80,7 +80,7 @@ class TestKubeVirtAIAgent(unittest.TestCase):
         self.test_dir = tempfile.mkdtemp()
         # Create config directory structure
         (Path(self.test_dir) / "config").mkdir(exist_ok=True)
-        self.test_mcps_file = Path(self.test_dir) / "config" / "mcps.json"
+        self.test_mcps_file = Path(self.test_dir) / "config" / "config.json"
         self.test_agent_prompt = Path(self.test_dir) / "agents" / "kubevirt-ai-agent-prompt.txt"
         
         # Create test directories
@@ -97,7 +97,7 @@ class TestKubeVirtAIAgent(unittest.TestCase):
     
     @patch('main.get_anthropic_client')
     def test_agent_initialization_no_mcps(self, mock_get_client):
-        """Test agent initialization when no mcps.json exists."""
+        """Test agent initialization when no config.json exists."""
         mock_client = Mock()
         mock_get_client.return_value = mock_client
         
@@ -115,11 +115,11 @@ class TestKubeVirtAIAgent(unittest.TestCase):
     
     @patch('main.get_anthropic_client')
     def test_agent_initialization_with_mcps(self, mock_get_client):
-        """Test agent initialization with valid mcps.json."""
+        """Test agent initialization with valid config.json."""
         mock_client = Mock()
         mock_get_client.return_value = mock_client
         
-        # Create test mcps.json
+        # Create test config.json
         test_mcps = {
             "mcpServers": {
                 "test-server": {
@@ -149,7 +149,7 @@ class TestKubeVirtAIAgent(unittest.TestCase):
     
     @patch('main.get_anthropic_client')
     def test_agent_initialization_invalid_json(self, mock_get_client):
-        """Test agent initialization with invalid mcps.json."""
+        """Test agent initialization with invalid config.json."""
         mock_client = Mock()
         mock_get_client.return_value = mock_client
         
