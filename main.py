@@ -414,7 +414,7 @@ Examples:
 
     # Handle auth status check
     if args.auth_status:
-        from login import check_auth_status
+        from pkg.login import check_auth_status
 
         check_auth_status()
         return
