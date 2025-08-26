@@ -1,0 +1,62 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: claude-logs-pvc
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: claude-sa
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: claude-cluster-admin
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: cluster-admin
+subjects:
+- kind: ServiceAccount
+  name: claude-sa
+  namespace: default
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: claude-deployment
+  labels:
+    app: claude
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: claude
+  template:
+    metadata:
+      labels:
+        app: claude
+    spec:
+      hostNetwork: true
+      serviceAccountName: claude-sa
+      containers:
+      - name: claude
+        image: quay.io/oshoval/claude:latest
+        imagePullPolicy: Never
+        stdin: true
+        tty: true
+        command: ["/bin/bash"]
+        args: ["-c", "sleep infinity"]
+        volumeMounts:
+        - name: logs-volume
+          mountPath: /var/log/claude
+      volumes:
+      - name: logs-volume
+        persistentVolumeClaim:
+          claimName: claude-logs-pvc
