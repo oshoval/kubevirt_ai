@@ -1,4 +1,4 @@
 # KubeVirt AI Agent Dependencies
-anthropic[vertex]>=0.7.0
+anthropic[vertex]>=0.34.0
 rich>=13.0.0
 mcp>=1.0.0
