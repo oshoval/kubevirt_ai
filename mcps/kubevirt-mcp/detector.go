@@ -17,18 +17,47 @@ func detectKubevirtciCluster() (string, error) {
 	var kubeconfigPath string
 	var source string
 
-	// First, check if GLOBAL_KUBECONFIG environment variable is set
-	globalKubeconfig := os.Getenv("GLOBAL_KUBECONFIG")
-
-	if globalKubeconfig != "" {
-		// Check if the GLOBAL_KUBECONFIG file exists
-		if _, err := os.Stat(globalKubeconfig); err == nil {
-			kubeconfigPath = globalKubeconfig
-			source = "GLOBAL_KUBECONFIG"
+	// First, check if KUBECONFIG environment variable is already set
+	existingKubeconfig := os.Getenv("KUBECONFIG")
+	if existingKubeconfig != "" {
+		if _, err := os.Stat(existingKubeconfig); err == nil {
+			kubeconfigPath = existingKubeconfig
+			source = "KUBECONFIG environment variable"
 		}
 	}
 
-	// If GLOBAL_KUBECONFIG not found, try ~/.kube/config
+	// Second, check if we can use in-cluster authentication (running in a pod)
+	if kubeconfigPath == "" {
+		clusterInfo := testInClusterConnectivity()
+		if clusterInfo.Found {
+			result := `Cluster Available via in-cluster authentication
+
+🔧 Environment: Running inside Kubernetes pod
+   ✅ Service account authentication active
+   ✅ No kubeconfig configuration needed
+
+📝 Verification:
+   kubectl get nodes
+   kubectl get kubevirt -n kubevirt
+
+✨ Ready to use cluster!`
+			return result, nil
+		}
+	}
+
+	// Third, check if GLOBAL_KUBECONFIG environment variable is set
+	if kubeconfigPath == "" {
+		globalKubeconfig := os.Getenv("GLOBAL_KUBECONFIG")
+		if globalKubeconfig != "" {
+			// Check if the GLOBAL_KUBECONFIG file exists
+			if _, err := os.Stat(globalKubeconfig); err == nil {
+				kubeconfigPath = globalKubeconfig
+				source = "GLOBAL_KUBECONFIG"
+			}
+		}
+	}
+
+	// Fourth, try ~/.kube/config
 	if kubeconfigPath == "" {
 		homeDir, err := os.UserHomeDir()
 		if err == nil {
@@ -42,7 +71,7 @@ func detectKubevirtciCluster() (string, error) {
 
 	// If no kubeconfig found
 	if kubeconfigPath == "" {
-		return "No kubeconfig found. Checked GLOBAL_KUBECONFIG environment variable and ~/.kube/config", nil
+		return "No kubeconfig found. Checked KUBECONFIG, GLOBAL_KUBECONFIG environment variables, ~/.kube/config, and in-cluster authentication", nil
 	}
 
 	// Test cluster connectivity using the kubeconfig
@@ -65,6 +94,29 @@ func detectKubevirtciCluster() (string, error) {
 ✨ Ready to use cluster!`, source, kubeconfigPath)
 
 	return result, nil
+}
+
+// testInClusterConnectivity tests cluster connectivity using in-cluster authentication
+// This approach is simpler and more reliable than checking file paths or environment variables
+func testInClusterConnectivity() ClusterInfo {
+	info := ClusterInfo{
+		Found:      false,
+		Kubeconfig: "in-cluster",
+	}
+
+	// Test kubectl connectivity without kubeconfig (uses in-cluster auth)
+	cmd := exec.Command("kubectl", "get", "nodes")
+	output, err := cmd.CombinedOutput()
+
+	if err != nil {
+		info.Message = fmt.Sprintf("kubectl in-cluster connectivity test failed: %v\nOutput: %s", err, string(output))
+		return info
+	}
+
+	// If we get here, kubectl worked with in-cluster auth
+	info.Found = true
+	info.Message = "Cluster is accessible via in-cluster authentication"
+	return info
 }
 
 func testClusterConnectivity(kubeconfigPath string) ClusterInfo {
@@ -99,12 +151,6 @@ type VMExecParams struct {
 
 // executeVMCommand executes a command on a KubeVirt VM using the vm-exec tool
 func executeVMCommand(params VMExecParams) (string, error) {
-	// Find kubeconfig path
-	kubeconfigPath := findKubeconfigPath()
-	if kubeconfigPath == "" {
-		return "", fmt.Errorf("no kubeconfig found - cannot connect to cluster")
-	}
-
 	// Find vm-exec binary path
 	vmExecPath, err := findVMExecBinary()
 	if err != nil {
@@ -113,10 +159,16 @@ func executeVMCommand(params VMExecParams) (string, error) {
 
 	// Build command arguments
 	args := []string{
-		"--kubeconfig", kubeconfigPath,
 		"-n", params.Namespace,
 		"-v", params.VMName,
 		"-c", params.Command,
+	}
+
+	// Add kubeconfig only if we have one available
+	kubeconfigPath := findKubeconfigPath()
+	// If no kubeconfig, kubectl will automatically try in-cluster authentication
+	if kubeconfigPath != "" {
+		args = append([]string{"--kubeconfig", kubeconfigPath}, args...)
 	}
 
 	// Add optional parameters
@@ -140,7 +192,15 @@ func executeVMCommand(params VMExecParams) (string, error) {
 
 // findKubeconfigPath finds the kubeconfig file path using the same logic as detectKubevirtciCluster
 func findKubeconfigPath() string {
-	// First, check GLOBAL_KUBECONFIG
+	// First, check if KUBECONFIG environment variable is set
+	existingKubeconfig := os.Getenv("KUBECONFIG")
+	if existingKubeconfig != "" {
+		if _, err := os.Stat(existingKubeconfig); err == nil {
+			return existingKubeconfig
+		}
+	}
+
+	// Second, check GLOBAL_KUBECONFIG
 	globalKubeconfig := os.Getenv("GLOBAL_KUBECONFIG")
 	if globalKubeconfig != "" {
 		if _, err := os.Stat(globalKubeconfig); err == nil {
@@ -148,7 +208,7 @@ func findKubeconfigPath() string {
 		}
 	}
 
-	// Then check ~/.kube/config
+	// Third, check ~/.kube/config
 	homeDir, err := os.UserHomeDir()
 	if err == nil {
 		defaultKubeconfig := homeDir + "/.kube/config"
