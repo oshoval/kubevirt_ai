@@ -1,4 +1,4 @@
-.PHONY: help tox test format lint type-check quality clean e2e-test install-bats build build-mcp build-vm-exec cluster-up cluster-down
+.PHONY: help tox test format lint type-check quality clean e2e-test install-bats build build-mcp build-vm-exec build-agent cluster-up cluster-down
 
 # Default target
 help:
@@ -6,6 +6,7 @@ help:
 	@echo "  build      - Build all required binaries (mcp + vm-exec)"
 	@echo "  build-mcp  - Build kubevirt-mcp binary"
 	@echo "  build-vm-exec - Build vm-exec binary"
+	@echo "  build-agent - Build Docker image for AI agent"
 	@echo "  cluster-up - Setup Kind cluster with KubeVirt"
 	@echo "  cluster-down - Teardown Kind cluster"
 	@echo "  tox        - Run default tox environments (format + lint)"
@@ -65,6 +66,12 @@ build-vm-exec:
 	@echo "Building vm-exec..."
 	cd mcps/console && go build -o ../../bin/vm-exec .
 	@echo "✓ vm-exec built: bin/vm-exec"
+
+# Build Docker image for AI agent
+build-agent:
+	@echo "Building Docker image for AI agent..."
+	docker build -t agent .
+	@echo "✓ Docker image built: agent"
 
 # Setup Kind cluster with KubeVirt
 cluster-up:

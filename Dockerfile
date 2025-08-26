@@ -32,7 +32,7 @@ RUN mkdir -p /root/project && \
     cd kubevirt_ai && \
     pip install -r requirements.txt && \
     pip install -r requirements-dev.txt && \
-    make build && \
+    PATH=$PATH:/usr/local/go/bin make build && \
     mkdir -p /root/project/kubevirt_ai/kubevirt_ai_agent_logs
 
 ENV PATH="$PATH:/root/.npm-global/bin:/usr/local/go/bin"
