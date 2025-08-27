@@ -1,5 +1,7 @@
 FROM quay.io/fedora/fedora:42
 
+ARG ANTHROPIC_VERTEX_PROJECT_ID
+
 RUN echo '[google-cloud-cli]' > /etc/yum.repos.d/google-cloud-sdk.repo && \
     echo 'name=Google Cloud CLI' >> /etc/yum.repos.d/google-cloud-sdk.repo && \
     echo 'baseurl=https://packages.cloud.google.com/yum/repos/cloud-sdk-el9-x86_64' >> /etc/yum.repos.d/google-cloud-sdk.repo && \
@@ -35,11 +37,17 @@ RUN mkdir -p /root/project && \
     PATH=$PATH:/usr/local/go/bin make build && \
     mkdir -p /root/project/kubevirt_ai/kubevirt_ai_agent_logs
 
+RUN mkdir -p /root/.config/gcloud
+COPY --from=gcloud-config . /root/.config/gcloud/
+
 ENV PATH="$PATH:/root/.npm-global/bin:/usr/local/go/bin"
 ENV GOPATH="/root/go"
 ENV GOROOT="/usr/local/go"
 ENV CLAUDE_CODE_USE_VERTEX=1
 ENV CLOUD_ML_REGION=us-east5
+ENV ANTHROPIC_VERTEX_PROJECT_ID=$ANTHROPIC_VERTEX_PROJECT_ID
+
+RUN gcloud auth application-default set-quota-project cloudability-it-gemini
 
 # Set working directory
 WORKDIR /root/project/kubevirt_ai

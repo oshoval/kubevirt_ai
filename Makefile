@@ -1,4 +1,4 @@
-.PHONY: help tox test format lint type-check quality clean e2e-test install-bats build build-mcp build-vm-exec build-agent cluster-up cluster-down
+.PHONY: help tox test format lint type-check quality clean e2e-test install-bats build build-mcp build-vm-exec build-agent cluster-up cluster-down deploy
 
 # Default target
 help:
@@ -7,6 +7,7 @@ help:
 	@echo "  build-mcp  - Build kubevirt-mcp binary"
 	@echo "  build-vm-exec - Build vm-exec binary"
 	@echo "  build-agent - Build Docker image for AI agent"
+	@echo "  deploy     - Load Docker image to kind and deploy to cluster"
 	@echo "  cluster-up - Setup Kind cluster with KubeVirt"
 	@echo "  cluster-down - Teardown Kind cluster"
 	@echo "  tox        - Run default tox environments (format + lint)"
@@ -69,9 +70,10 @@ build-vm-exec:
 
 # Build Docker image for AI agent
 build-agent:
-	@echo "Building Docker image for AI agent..."
-	docker build -t agent .
-	@echo "✓ Docker image built: agent"
+	@echo "Checking required environment variables..."
+	@test -n "$$GCLOUD_FOLDER" || (echo "Error: GCLOUD_FOLDER environment variable is not set, usually should be /home/$$USER/.config/gcloud" && exit 1)
+	@test -n "$$ANTHROPIC_VERTEX_PROJECT_ID" || (echo "Error: ANTHROPIC_VERTEX_PROJECT_ID environment variable is not set" && exit 1)
+	docker build --build-context gcloud-config=$$GCLOUD_FOLDER --build-arg ANTHROPIC_VERTEX_PROJECT_ID=$$ANTHROPIC_VERTEX_PROJECT_ID -t quay.io/user/claude:latest .
 
 # Setup Kind cluster with KubeVirt
 cluster-up:
@@ -85,6 +87,12 @@ cluster-down:
 	@kind delete cluster --name kind || echo "Cluster may not exist"
 	@rm -f kind-kubeconfig || true
 	@echo "✓ Cluster teardown complete"
+
+# Deploy Docker image to kind cluster
+deploy:
+	kind load docker-image quay.io/user/claude:latest
+	kubectl delete --ignore-not-found=true -f manifests/claude-deployment.yaml
+	kubectl create -f manifests/claude-deployment.yaml
 
 # Clean tox environments
 clean:

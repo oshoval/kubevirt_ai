@@ -47,7 +47,7 @@ spec:
       serviceAccountName: claude-sa
       containers:
       - name: claude
-        image: quay.io/oshoval/claude:latest
+        image: quay.io/user/claude:latest
         imagePullPolicy: Never
         stdin: true
         tty: true
