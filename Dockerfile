@@ -27,11 +27,10 @@ RUN mkdir -p /root/.npm-global && \
     npm config set prefix '/root/.npm-global' && \
     npm install -g @anthropic-ai/claude-code
 
-# Clone kubevirt_ai project
-RUN mkdir -p /root/project && \
-    cd /root/project && \
-    git clone https://github.com/oshoval/kubevirt_ai.git && \
-    cd kubevirt_ai && \
+# Copy local kubevirt_ai project
+RUN mkdir -p /root/project/kubevirt_ai
+COPY . /root/project/kubevirt_ai/
+RUN cd /root/project/kubevirt_ai && \
     pip install -r requirements.txt && \
     pip install -r requirements-dev.txt && \
     PATH=$PATH:/usr/local/go/bin make build && \

@@ -75,6 +75,12 @@ build-agent:
 	@test -n "$$ANTHROPIC_VERTEX_PROJECT_ID" || (echo "Error: ANTHROPIC_VERTEX_PROJECT_ID environment variable is not set" && exit 1)
 	docker build --build-context gcloud-config=$$GCLOUD_FOLDER --build-arg ANTHROPIC_VERTEX_PROJECT_ID=$$ANTHROPIC_VERTEX_PROJECT_ID -t quay.io/user/claude:latest .
 
+build-agent-no-cache:
+	@echo "Checking required environment variables..."
+	@test -n "$$GCLOUD_FOLDER" || (echo "Error: GCLOUD_FOLDER environment variable is not set, usually should be /home/$$USER/.config/gcloud" && exit 1)
+	@test -n "$$ANTHROPIC_VERTEX_PROJECT_ID" || (echo "Error: ANTHROPIC_VERTEX_PROJECT_ID environment variable is not set" && exit 1)
+	docker build --no-cache --build-context gcloud-config=$$GCLOUD_FOLDER --build-arg ANTHROPIC_VERTEX_PROJECT_ID=$$ANTHROPIC_VERTEX_PROJECT_ID -t quay.io/user/claude:latest .
+
 # Setup Kind cluster with KubeVirt
 cluster-up:
 	@echo "Setting up Kind cluster with KubeVirt..."

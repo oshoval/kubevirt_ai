@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"os"
 	"os/exec"
@@ -18,7 +19,35 @@ type ClusterInfo struct {
 	Message     string
 }
 
-func detectClusterType(kubeconfigPath string) (string, string) {
+type Config struct {
+	Docs struct {
+		Kubernetes string `json:"kubernetes"`
+		OpenShift  string `json:"openshift"`
+	} `json:"docs"`
+}
+
+func loadConfig() (*Config, error) {
+	configPath := filepath.Join("config", "config.json")
+	data, err := os.ReadFile(configPath)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read config file: %v", err)
+	}
+
+	var config Config
+	if err := json.Unmarshal(data, &config); err != nil {
+		return nil, fmt.Errorf("failed to parse config file: %v", err)
+	}
+
+	return &config, nil
+}
+
+func detectClusterType(kubeconfigPath string) (string, string, error) {
+	// Load configuration
+	config, err := loadConfig()
+	if err != nil {
+		return "", "", fmt.Errorf("failed to load config: %v", err)
+	}
+
 	// Detect if cluster is OpenShift or Kubernetes
 	var cmd *exec.Cmd
 	if kubeconfigPath != "" {
@@ -30,15 +59,15 @@ func detectClusterType(kubeconfigPath string) (string, string) {
 
 	output, err := cmd.Output()
 	if err != nil {
-		return "kubernetes", "~/project/user-guide" // Default to kubernetes if detection fails
+		return "", "", fmt.Errorf("failed to detect cluster type: %v", err)
 	}
 
 	// Check for OpenShift-specific resources
 	if strings.Contains(string(output), "routes") && strings.Contains(string(output), "openshift.io") {
-		return "openshift", "~/project/openshift-docs"
+		return "openshift", config.Docs.OpenShift, nil
 	}
 
-	return "kubernetes", "~/project/user-guide"
+	return "kubernetes", config.Docs.Kubernetes, nil
 }
 
 func detectKubevirtciCluster() (string, error) {
@@ -50,7 +79,10 @@ func detectKubevirtciCluster() (string, error) {
 		if _, err := os.Stat(existingKubeconfig); err == nil {
 			clusterInfo := testClusterConnectivity(existingKubeconfig)
 			if clusterInfo.Found {
-				clusterType, docsPath := detectClusterType(existingKubeconfig)
+				clusterType, docsPath, err := detectClusterType(existingKubeconfig)
+				if err != nil {
+					return "", fmt.Errorf("cluster detection failed: %v", err)
+				}
 				result := fmt.Sprintf(`Cluster Available via KUBECONFIG environment variable
 
 Setup Commands:
@@ -71,7 +103,10 @@ Ready to use %s cluster!`, existingKubeconfig, clusterType, docsPath, clusterTyp
 	// Second, try in-cluster authentication (running in a pod)
 	clusterInfo := testInClusterConnectivity()
 	if clusterInfo.Found {
-		clusterType, docsPath := detectClusterType("")
+		clusterType, docsPath, err := detectClusterType("")
+		if err != nil {
+			return "", fmt.Errorf("cluster detection failed: %v", err)
+		}
 		result := fmt.Sprintf(`Cluster Available via in-cluster authentication
 
 Environment: Running inside Kubernetes pod
@@ -95,7 +130,10 @@ Ready to use %s cluster!`, clusterType, docsPath, clusterType)
 		if _, err := os.Stat(defaultKubeconfig); err == nil {
 			clusterInfo := testClusterConnectivity(defaultKubeconfig)
 			if clusterInfo.Found {
-				clusterType, docsPath := detectClusterType(defaultKubeconfig)
+				clusterType, docsPath, err := detectClusterType(defaultKubeconfig)
+				if err != nil {
+					return "", fmt.Errorf("cluster detection failed: %v", err)
+				}
 				result := fmt.Sprintf(`Cluster Available via ~/.kube/config
 
 Setup Commands:
@@ -119,7 +157,10 @@ Ready to use %s cluster!`, defaultKubeconfig, clusterType, docsPath, clusterType
 		if _, err := os.Stat(globalKubeconfig); err == nil {
 			clusterInfo := testClusterConnectivity(globalKubeconfig)
 			if clusterInfo.Found {
-				clusterType, docsPath := detectClusterType(globalKubeconfig)
+				clusterType, docsPath, err := detectClusterType(globalKubeconfig)
+				if err != nil {
+					return "", fmt.Errorf("cluster detection failed: %v", err)
+				}
 				result := fmt.Sprintf(`Cluster Available via GLOBAL_KUBECONFIG
 
 Setup Commands:
