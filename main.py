@@ -223,7 +223,7 @@ class KubeVirtAIAgent:
 
             # Continue conversation until model decides it's complete (official Anthropic pattern)
             conversation_turn = 0
-            max_safety_turns = 50  # Safety valve to prevent infinite loops
+            max_safety_turns = self.config.get('max_rounds', 50)  # Safety valve to prevent infinite loops
 
             while conversation_turn < max_safety_turns:
                 conversation_turn += 1

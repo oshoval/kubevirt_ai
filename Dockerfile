@@ -37,6 +37,11 @@ RUN mkdir -p /root/project && \
     PATH=$PATH:/usr/local/go/bin make build && \
     mkdir -p /root/project/kubevirt_ai/kubevirt_ai_agent_logs
 
+# Clone documentation repositories
+RUN cd /root/project && \
+    git clone https://github.com/kubevirt/user-guide.git && \
+    git clone https://github.com/kubevirt/openshift-docs.git
+
 RUN mkdir -p /root/.config/gcloud
 COPY --from=gcloud-config . /root/.config/gcloud/
 

@@ -1,5 +1,10 @@
 {
   "agent": "agents/kubevirt-ai-agent-prompt.txt",
+  "max_rounds": 50,
+  "docs": {
+    "kubernetes": "~/project/user-guide",
+    "openshift": "~/project/openshift-docs"
+  },
   "mcpServers": {
     "kubevirt-mcp": {
       "command": "./bin/kubevirt-mcp",

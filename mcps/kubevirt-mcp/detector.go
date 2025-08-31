@@ -1,99 +1,144 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
+	"time"
 )
 
 type ClusterInfo struct {
-	Found      bool
-	Kubeconfig string
-	Message    string
+	Found       bool
+	Kubeconfig  string
+	ClusterType string
+	DocsPath    string
+	Message     string
+}
+
+func detectClusterType(kubeconfigPath string) (string, string) {
+	// Detect if cluster is OpenShift or Kubernetes
+	var cmd *exec.Cmd
+	if kubeconfigPath != "" {
+		cmd = exec.Command("kubectl", "--kubeconfig", kubeconfigPath, "api-resources")
+	} else {
+		// Use in-cluster or default kubeconfig
+		cmd = exec.Command("kubectl", "api-resources")
+	}
+
+	output, err := cmd.Output()
+	if err != nil {
+		return "kubernetes", "~/project/user-guide" // Default to kubernetes if detection fails
+	}
+
+	// Check for OpenShift-specific resources
+	if strings.Contains(string(output), "routes") && strings.Contains(string(output), "openshift.io") {
+		return "openshift", "~/project/openshift-docs"
+	}
+
+	return "kubernetes", "~/project/user-guide"
 }
 
 func detectKubevirtciCluster() (string, error) {
-	var kubeconfigPath string
-	var source string
+	// Try sources in priority order until we find a working cluster
 
-	// First, check if KUBECONFIG environment variable is already set
+	// First, try KUBECONFIG environment variable
 	existingKubeconfig := os.Getenv("KUBECONFIG")
 	if existingKubeconfig != "" {
 		if _, err := os.Stat(existingKubeconfig); err == nil {
-			kubeconfigPath = existingKubeconfig
-			source = "KUBECONFIG environment variable"
-		}
-	}
+			clusterInfo := testClusterConnectivity(existingKubeconfig)
+			if clusterInfo.Found {
+				clusterType, docsPath := detectClusterType(existingKubeconfig)
+				result := fmt.Sprintf(`Cluster Available via KUBECONFIG environment variable
 
-	// Second, check if we can use in-cluster authentication (running in a pod)
-	if kubeconfigPath == "" {
-		clusterInfo := testInClusterConnectivity()
-		if clusterInfo.Found {
-			result := `Cluster Available via in-cluster authentication
-
-🔧 Environment: Running inside Kubernetes pod
-   ✅ Service account authentication active
-   ✅ No kubeconfig configuration needed
-
-📝 Verification:
-   kubectl get nodes
-   kubectl get kubevirt -n kubevirt
-
-✨ Ready to use cluster!`
-			return result, nil
-		}
-	}
-
-	// Third, check if GLOBAL_KUBECONFIG environment variable is set
-	if kubeconfigPath == "" {
-		globalKubeconfig := os.Getenv("GLOBAL_KUBECONFIG")
-		if globalKubeconfig != "" {
-			// Check if the GLOBAL_KUBECONFIG file exists
-			if _, err := os.Stat(globalKubeconfig); err == nil {
-				kubeconfigPath = globalKubeconfig
-				source = "GLOBAL_KUBECONFIG"
-			}
-		}
-	}
-
-	// Fourth, try ~/.kube/config
-	if kubeconfigPath == "" {
-		homeDir, err := os.UserHomeDir()
-		if err == nil {
-			defaultKubeconfig := homeDir + "/.kube/config"
-			if _, err := os.Stat(defaultKubeconfig); err == nil {
-				kubeconfigPath = defaultKubeconfig
-				source = "~/.kube/config"
-			}
-		}
-	}
-
-	// If no kubeconfig found
-	if kubeconfigPath == "" {
-		return "No kubeconfig found. Checked KUBECONFIG, GLOBAL_KUBECONFIG environment variables, ~/.kube/config, and in-cluster authentication", nil
-	}
-
-	// Test cluster connectivity using the kubeconfig
-	clusterInfo := testClusterConnectivity(kubeconfigPath)
-
-	if !clusterInfo.Found {
-		return fmt.Sprintf("Cluster not accessible via %s (%s)\n%s", source, kubeconfigPath, clusterInfo.Message), nil
-	}
-
-	// Success - cluster is accessible
-	result := fmt.Sprintf(`Cluster Available via %s
-
-🔧 Setup Commands:
+Setup Commands:
    export KUBECONFIG=%s
+   export CLUSTER_TYPE=%s
+   export DOCS_FOLDER=%s
 
-📝 Verification:
+Verification:
    kubectl get nodes
    kubectl get kubevirt -n kubevirt
 
-✨ Ready to use cluster!`, source, kubeconfigPath)
+Ready to use %s cluster!`, existingKubeconfig, clusterType, docsPath, clusterType)
+				return result, nil
+			}
+		}
+	}
 
-	return result, nil
+	// Second, try in-cluster authentication (running in a pod)
+	clusterInfo := testInClusterConnectivity()
+	if clusterInfo.Found {
+		clusterType, docsPath := detectClusterType("")
+		result := fmt.Sprintf(`Cluster Available via in-cluster authentication
+
+Environment: Running inside Kubernetes pod
+   Service account authentication active
+   No kubeconfig configuration needed
+   export CLUSTER_TYPE=%s
+   export DOCS_FOLDER=%s
+
+Verification:
+   kubectl get nodes
+   kubectl get kubevirt -n kubevirt
+
+Ready to use %s cluster!`, clusterType, docsPath, clusterType)
+		return result, nil
+	}
+
+	// Third, try ~/.kube/config
+	homeDir, err := os.UserHomeDir()
+	if err == nil {
+		defaultKubeconfig := homeDir + "/.kube/config"
+		if _, err := os.Stat(defaultKubeconfig); err == nil {
+			clusterInfo := testClusterConnectivity(defaultKubeconfig)
+			if clusterInfo.Found {
+				clusterType, docsPath := detectClusterType(defaultKubeconfig)
+				result := fmt.Sprintf(`Cluster Available via ~/.kube/config
+
+Setup Commands:
+   export KUBECONFIG=%s
+   export CLUSTER_TYPE=%s
+   export DOCS_FOLDER=%s
+
+Verification:
+   kubectl get nodes
+   kubectl get kubevirt -n kubevirt
+
+Ready to use %s cluster!`, defaultKubeconfig, clusterType, docsPath, clusterType)
+				return result, nil
+			}
+		}
+	}
+
+	// Fourth, try GLOBAL_KUBECONFIG environment variable
+	globalKubeconfig := os.Getenv("GLOBAL_KUBECONFIG")
+	if globalKubeconfig != "" {
+		if _, err := os.Stat(globalKubeconfig); err == nil {
+			clusterInfo := testClusterConnectivity(globalKubeconfig)
+			if clusterInfo.Found {
+				clusterType, docsPath := detectClusterType(globalKubeconfig)
+				result := fmt.Sprintf(`Cluster Available via GLOBAL_KUBECONFIG
+
+Setup Commands:
+   export KUBECONFIG=%s
+   export CLUSTER_TYPE=%s
+   export DOCS_FOLDER=%s
+
+Verification:
+   kubectl get nodes
+   kubectl get kubevirt -n kubevirt
+
+Ready to use %s cluster!`, globalKubeconfig, clusterType, docsPath, clusterType)
+				return result, nil
+			}
+		}
+	}
+
+	// No working cluster found
+	return "No accessible cluster found using any configured kubeconfig source", nil
 }
 
 // testInClusterConnectivity tests cluster connectivity using in-cluster authentication
@@ -104,12 +149,19 @@ func testInClusterConnectivity() ClusterInfo {
 		Kubeconfig: "in-cluster",
 	}
 
-	// Test kubectl connectivity without kubeconfig (uses in-cluster auth)
-	cmd := exec.Command("kubectl", "get", "nodes")
+	// Test kubectl connectivity without kubeconfig (uses in-cluster auth) with timeout
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	cmd := exec.CommandContext(ctx, "kubectl", "cluster-info")
 	output, err := cmd.CombinedOutput()
 
 	if err != nil {
-		info.Message = fmt.Sprintf("kubectl in-cluster connectivity test failed: %v\nOutput: %s", err, string(output))
+		if ctx.Err() == context.DeadlineExceeded {
+			info.Message = "kubectl in-cluster connectivity test timed out after 5 seconds"
+		} else {
+			info.Message = fmt.Sprintf("kubectl in-cluster connectivity test failed: %v\nOutput: %s", err, string(output))
+		}
 		return info
 	}
 
@@ -125,12 +177,19 @@ func testClusterConnectivity(kubeconfigPath string) ClusterInfo {
 		Kubeconfig: kubeconfigPath,
 	}
 
-	// Test kubectl connectivity
-	cmd := exec.Command("kubectl", "get", "nodes", "--kubeconfig", kubeconfigPath)
+	// Test kubectl connectivity with timeout
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	cmd := exec.CommandContext(ctx, "kubectl", "cluster-info", "--kubeconfig", kubeconfigPath)
 	output, err := cmd.CombinedOutput()
 
 	if err != nil {
-		info.Message = fmt.Sprintf("kubectl connectivity test failed: %v\nOutput: %s", err, string(output))
+		if ctx.Err() == context.DeadlineExceeded {
+			info.Message = "kubectl connectivity test timed out after 5 seconds"
+		} else {
+			info.Message = fmt.Sprintf("kubectl connectivity test failed: %v\nOutput: %s", err, string(output))
+		}
 		return info
 	}
 

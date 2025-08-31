@@ -133,7 +133,10 @@ class MCPRegistry:
         """Get all tools from all connected clients in Anthropic format."""
         all_tools = []
         for client in self.connected_clients.values():
-            all_tools.extend(client.get_tools_for_anthropic())
+            # Get all tools from client and filter out detect_kubevirtci_cluster
+            client_tools = client.get_tools_for_anthropic()
+            filtered_tools = [tool for tool in client_tools if tool.get("name") != "detect_kubevirtci_cluster"]
+            all_tools.extend(filtered_tools)
 
         # Add built-in shell execution tools
         all_tools.extend(
