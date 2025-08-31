@@ -3,7 +3,7 @@
   "max_rounds": 50,
   "docs": {
     "kubernetes": "~/project/user-guide",
-    "openshift": "~/project/openshift-docs"
+    "openshift": "~/project/openshift-docs/virt"
   },
   "mcpServers": {
     "kubevirt-mcp": {

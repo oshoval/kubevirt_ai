@@ -40,7 +40,7 @@ RUN mkdir -p /root/project && \
 # Clone documentation repositories
 RUN cd /root/project && \
     git clone https://github.com/kubevirt/user-guide.git && \
-    git clone https://github.com/kubevirt/openshift-docs.git
+    git clone https://github.com/openshift/openshift-docs.git
 
 RUN mkdir -p /root/.config/gcloud
 COPY --from=gcloud-config . /root/.config/gcloud/
