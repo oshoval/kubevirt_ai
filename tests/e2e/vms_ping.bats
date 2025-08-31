@@ -50,7 +50,7 @@ spec:
                 dhcp4: true
 EOF
     fi
-    
+
     if ! kubectl get vm vmi2 >/dev/null 2>&1; then
         echo "Creating vmi2..."
         kubectl apply -f - <<EOF
@@ -99,38 +99,38 @@ spec:
                 dhcp4: true
 EOF
     fi
-    
+
     # Wait for VMs to be ready (with timeout)
     echo "Waiting for VMs to be ready..."
     timeout=300  # 5 minutes
     start_time=$(date +%s)
-    
+
     while true; do
         current_time=$(date +%s)
         elapsed=$((current_time - start_time))
-        
+
         if [ $elapsed -gt $timeout ]; then
             fail "Timeout waiting for VMs to be ready after ${timeout}s"
         fi
-        
+
         vm1_ready=$(kubectl get vm vmi1 -o jsonpath='{.status.ready}' 2>/dev/null || echo "false")
         vm2_ready=$(kubectl get vm vmi2 -o jsonpath='{.status.ready}' 2>/dev/null || echo "false")
-        
+
         if [ "$vm1_ready" = "true" ] && [ "$vm2_ready" = "true" ]; then
             break
         fi
-        
+
         echo "VMs not ready yet (${elapsed}s elapsed), waiting..."
         sleep 5
     done
-    
+
     # Get VM IP addresses
     VM1_IP=$(kubectl get vmi vmi1 -o jsonpath='{.status.interfaces[0].ipAddress}')
     VM2_IP=$(kubectl get vmi vmi2 -o jsonpath='{.status.interfaces[0].ipAddress}')
-    
+
     [ -n "$VM1_IP" ] || fail "Cannot get vmi1 IP address"
     [ -n "$VM2_IP" ] || fail "Cannot get vmi2 IP address"
-    
+
     echo "VMs ready - vmi1: $VM1_IP, vmi2: $VM2_IP"
 }
 

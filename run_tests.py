@@ -13,15 +13,15 @@ def run_tests():
     loader = unittest.TestLoader()
     start_dir = Path(__file__).parent / "tests"
     suite = loader.discover(start_dir, pattern='test_*.py')
-    
+
     # Run tests with verbose output
     runner = unittest.TextTestRunner(verbosity=2)
     result = runner.run(suite)
-    
+
     # Exit with non-zero code if tests failed
     if not result.wasSuccessful():
         sys.exit(1)
-    
+
     print(f"\n✅ All tests passed! ({result.testsRun} tests)")
 
 if __name__ == '__main__':

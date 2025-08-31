@@ -70,7 +70,7 @@ tox -e type-check
 3. **For specific tasks**:
    ```bash
    tox -e format    # Just format code
-   tox -e lint      # Just check linting  
+   tox -e lint      # Just check linting
    tox -e test      # Just run tests
    ```
 
@@ -91,7 +91,7 @@ The tox configuration is in `tox.ini` and includes:
 
 All tools are automatically installed in isolated environments by tox:
 - `black` - Code formatter
-- `isort` - Import sorter  
+- `isort` - Import sorter
 - `autoflake` - Unused import remover
 - `flake8` - Linter
 - `mypy` - Type checker (optional)

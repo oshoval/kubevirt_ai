@@ -42,7 +42,7 @@
 ### ✅ Recent Improvements
 1. **Official Anthropic Pattern**: Implemented true `while True` loop with `response.stop_reason == "tool_use"`
 2. **Zero Artificial Limits**: No `max_iterations` in main loop (only safety valve at 50 turns)
-3. **Modular Design**: Separated tool extraction, execution, and text extraction into clean helper methods  
+3. **Modular Design**: Separated tool extraction, execution, and text extraction into clean helper methods
 4. **Natural Completion**: Model decides when mission is complete via `stop_reason`
 5. **Perfect Multi-Step Execution**: Agent autonomously executes complex missions (28 tool calls for PASST investigation)
 6. **KUBECONFIG Intelligence**: AI correctly extracts and uses KUBECONFIG path across multiple commands

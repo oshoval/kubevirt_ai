@@ -9,21 +9,21 @@ ENV_FILE=".env"
 # Function to update docs if repository is clean
 update_docs_if_clean() {
     local docs_path="$1"
-    
+
     # Expand ~ to home directory
     docs_path="${docs_path/#\~/$HOME}"
-    
+
     if [ ! -d "$docs_path" ]; then
         echo "# Documentation path does not exist: $docs_path"
         return
     fi
-    
+
     cd "$docs_path" || return
-    
+
     # Check if git status is clean (no staged, unstaged, or untracked files)
     if ! git status --porcelain | grep -q .; then
         echo "# Repository is clean, updating documentation..."
-        
+
         # Check if upstream remote exists
         if git remote | grep -q "^upstream$"; then
             echo "# Pulling from upstream main..."
@@ -36,7 +36,7 @@ update_docs_if_clean() {
         echo "# Repository has uncommitted changes, skipping documentation update"
         git status --short
     fi
-    
+
     cd - > /dev/null
 }
 
@@ -73,7 +73,7 @@ if echo "$MCP_RESULT" | grep -q "CLUSTER_TYPE="; then
     echo "CLUSTER_TYPE=$CLUSTER_TYPE" >> "$ENV_FILE"
     echo "DOCS_FOLDER=$DOCS_FOLDER" >> "$ENV_FILE"
     echo "# Cluster detection: SUCCESS ($CLUSTER_TYPE)"
-    
+
     # Update documentation if clean
     echo "# Updating documentation..."
     update_docs_if_clean "$DOCS_FOLDER"

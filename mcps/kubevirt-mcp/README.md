@@ -26,7 +26,7 @@ The MCP server uses a `config.yaml` file to define kubeconfig sources and their 
 
 By default, the server checks sources in this order:
 1. **KUBECONFIG** environment variable (standard kubectl)
-2. **GLOBAL_KUBECONFIG** environment variable (development environments)  
+2. **GLOBAL_KUBECONFIG** environment variable (development environments)
 3. **~/.kube/config** file (default kubectl location)
 
 ### Custom Configuration
@@ -39,15 +39,15 @@ kubeconfig:
     - type: "env_var"
       name: "KUBECONFIG"
       description: "Standard kubectl environment variable"
-    
-    - type: "env_var" 
+
+    - type: "env_var"
       name: "GLOBAL_KUBECONFIG"
       description: "Global kubeconfig for development environments"
-    
+
     - type: "file"
       path: "~/.kube/config"
       description: "Default kubectl config location"
-    
+
     - type: "file"
       path: "/custom/path/kubeconfig"
       description: "Custom kubeconfig location"
@@ -195,7 +195,7 @@ This MCP server is designed to integrate seamlessly with any Kubernetes developm
 
 Planned features for future versions:
 - **Start/stop cluster** commands
-- **Cluster status** monitoring  
+- **Cluster status** monitoring
 - **Log access** from kubevirtci containers
 - **Port forwarding** management
 - **Test execution** helpers
