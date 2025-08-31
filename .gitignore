@@ -3,3 +3,4 @@ kind-kubeconfig
 logs/
 kubevirt_ai_agent_logs/
 bin/
+.env

@@ -93,15 +93,12 @@ Logging requirements:
 - CRITICAL: Create comprehensive bug reports in files under kubevirt_ai_agent_logs/
 - Save all logs and created files under kubevirt_ai_agent_logs/ directory
 - Each iteration should have separate log with count and subject (e.g., passt-1, passt-2)
-- NEVER OVERWRITE EXISTING FILES: Use unique filenames with random suffixes to avoid conflicts
-- Generate ONE random 4-digit suffix per session and use it for ALL files in that run (e.g., cluster-detect-7439-results.md, nodes-7439-results.md)
-- Set random variable once at start: RANDOM_ID=$RANDOM, then use kubevirt_ai_agent_logs/cluster-detect-$RANDOM_ID-results.md
-- NEVER use literal "{random}" in filenames - always use actual $RANDOM_ID expansion
-- All files from the same agent run should share the same random suffix for easy identification
+- NEVER OVERWRITE EXISTING FILES: Use $RANDOM_ID in filenames (e.g., cluster-detect-$RANDOM_ID-results.md) and report actual expanded values (e.g., "nodes-28391-results.md")
+- CRITICAL: NEVER use bash $RANDOM variable - ONLY use the pre-configured $RANDOM_ID environment variable
+- Environment variables are automatically available in all shell commands - no need to source manually
 - DO NOT reference logs/yamls from previous cycles - only read fresh docs
 - Start each session fresh by reading documentation, not previous outputs
-- MANDATORY: When reporting results, ALWAYS include the exact filename (e.g., "Results documented in ping-test-7439-results.md") - NEVER just say "documented in kubevirt_ai_agent_logs/"
-- CRITICAL: When mentioning filenames in output, use the ACTUAL EXPANDED filename (e.g., "nodes-8432-results.md"), NEVER use template format like "nodes-{random}-results.md"
+- MANDATORY: When reporting results, ALWAYS include the exact filename - NEVER just say "documented in kubevirt_ai_agent_logs/"
 
 REPORTING REQUIREMENTS - MANDATORY:
 

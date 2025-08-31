@@ -23,6 +23,37 @@ from pkg.tee_logger import TeeLogger
 console = Console()
 
 
+def load_environment():
+    """Load environment variables from setup script."""
+    try:
+        # Run setup script
+        setup_script = Path(__file__).parent / "hack" / "setup-env.sh"
+        result = subprocess.run(['bash', str(setup_script)],
+                              capture_output=True, text=True, check=True)
+
+        console.print("[green]Environment setup script executed successfully[/green]")
+        # Load .env file
+        env_file = Path(__file__).parent / ".env"
+        if env_file.exists():
+            with open(env_file, 'r') as f:
+                for line in f:
+                    line = line.strip()
+                    if line and not line.startswith('#') and '=' in line:
+                        key, value = line.split('=', 1)
+                        os.environ[key] = value
+                        console.print(f"[dim]Loaded: {key}={value}[/dim]")
+        else:
+            console.print("[yellow]Warning: .env file not found after setup[/yellow]")
+    except subprocess.CalledProcessError as e:
+        console.print(f"[red]Environment setup failed: {e}[/red]")
+        console.print(f"[red]Setup script output: {e.stdout}[/red]")
+        console.print(f"[red]Setup script error: {e.stderr}[/red]")
+        raise
+    except Exception as e:
+        console.print(f"[red]Failed to load environment: {e}[/red]")
+        raise
+
+
 class KubeVirtAIAgent:
     """Main AI agent for KubeVirt operations using Anthropic Claude."""
 
@@ -137,7 +168,9 @@ class KubeVirtAIAgent:
             safe_command = command.replace("[", "\\[").replace("]", "\\]")
             console.print(f"[blue]Executing: {safe_command}[/blue]")
 
-            result = subprocess.run(command, shell=True, capture_output=True, text=True, timeout=30)
+            # Subprocess automatically inherits the current process environment (os.environ)
+            # which already contains our loaded environment variables
+            result = subprocess.run(command, shell=True, capture_output=True, text=True, timeout=30, env=os.environ)
 
             if result.returncode == 0:
                 console.print("[green]✓ Command executed successfully[/green]")
@@ -374,6 +407,8 @@ class KubeVirtAIAgent:
 
 async def main():
     """Main application entry point."""
+    # Load environment variables first
+    load_environment()
     parser = argparse.ArgumentParser(
         description="KubeVirt AI Agent using Anthropic Claude",
         formatter_class=argparse.RawDescriptionHelpFormatter,
