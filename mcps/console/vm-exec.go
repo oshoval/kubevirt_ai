@@ -266,13 +266,7 @@ func (ve *VMExec) loginToVM(expecter expect.Expecter, vmi *v1.VirtualMachineInst
 }
 
 func (ve *VMExec) loginToFedora(expecter expect.Expecter, vmi *v1.VirtualMachineInstance, loginTimeout, promptTimeout time.Duration) error {
-	hostName := ve.sanitizeHostname(vmi)
-
-	// Check if already logged in
-	loggedInPromptRegex := fmt.Sprintf(
-		`(\[fedora@(localhost|fedora|%s|%s) ~\]\$ |\[root@(localhost|fedora|%s|%s) fedora\]\# )`,
-		vmi.Name, hostName, vmi.Name, hostName,
-	)
+	loggedInPromptRegex := `(\[fedora@[^\s\]]+\s+~\]\$ |\[root@[^\s\]]+\s+[^\]]*\]\# )`
 
 	b := []expect.Batcher{
 		&expect.BSnd{S: "\n"},
@@ -287,7 +281,7 @@ func (ve *VMExec) loginToFedora(expecter expect.Expecter, vmi *v1.VirtualMachine
 	b = []expect.Batcher{
 		&expect.BSnd{S: "\n"},
 		&expect.BSnd{S: "\n"},
-		&expect.BExp{R: fmt.Sprintf(`(localhost|fedora|%s|%s) login: `, vmi.Name, hostName)},
+		&expect.BExp{R: `[^\s]+ login: `}, // Match any hostname followed by " login: "
 		&expect.BSnd{S: "fedora\n"},
 		&expect.BExp{R: "Password:"},
 		&expect.BSnd{S: "fedora\n"},
@@ -301,8 +295,6 @@ func (ve *VMExec) loginToFedora(expecter expect.Expecter, vmi *v1.VirtualMachine
 }
 
 func (ve *VMExec) loginToCirros(expecter expect.Expecter, vmi *v1.VirtualMachineInstance, loginTimeout, promptTimeout time.Duration) error {
-	hostName := ve.sanitizeHostname(vmi)
-
 	// Check if already logged in
 	_, _, err := expecter.Expect(regexp.MustCompile(`\$`), promptTimeout)
 	if err == nil {
@@ -314,7 +306,7 @@ func (ve *VMExec) loginToCirros(expecter expect.Expecter, vmi *v1.VirtualMachine
 		&expect.BSnd{S: "\n"},
 		&expect.BExp{R: "login as 'cirros' user. default password: 'gocubsgo'. use 'sudo' for root."},
 		&expect.BSnd{S: "\n"},
-		&expect.BExp{R: hostName + " login:"},
+		&expect.BExp{R: `[^\s]+ login:`}, // Match any hostname followed by " login:"
 		&expect.BSnd{S: "cirros\n"},
 		&expect.BExp{R: "Password:"},
 		&expect.BSnd{S: "gocubsgo\n"},
@@ -326,12 +318,9 @@ func (ve *VMExec) loginToCirros(expecter expect.Expecter, vmi *v1.VirtualMachine
 }
 
 func (ve *VMExec) loginToAlpine(expecter expect.Expecter, vmi *v1.VirtualMachineInstance, loginTimeout, promptTimeout time.Duration) error {
-	hostName := ve.sanitizeHostname(vmi)
-
-	// Check if already logged in
 	b := []expect.Batcher{
 		&expect.BSnd{S: "\n"},
-		&expect.BExp{R: fmt.Sprintf(`(localhost|%s):~\# `, hostName)},
+		&expect.BExp{R: `[^\s]+:~\# `}, // Match any hostname followed by ":~# "
 	}
 	_, err := expecter.ExpectBatch(b, promptTimeout)
 	if err == nil {
@@ -341,7 +330,7 @@ func (ve *VMExec) loginToAlpine(expecter expect.Expecter, vmi *v1.VirtualMachine
 	// Login sequence
 	b = []expect.Batcher{
 		&expect.BSnd{S: "\n"},
-		&expect.BExp{R: fmt.Sprintf(`(localhost|%s) login: `, hostName)},
+		&expect.BExp{R: `[^\s]+ login: `}, // Match any hostname followed by " login: "
 		&expect.BSnd{S: "root\n"},
 		&expect.BExp{R: PromptExpression},
 	}
