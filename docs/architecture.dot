@@ -1,0 +1,86 @@
+digraph KubeVirtAI {
+    rankdir=TB;
+    
+    // Graph styling
+    graph [fontname="Arial", fontsize=14, style=filled, color=lightgrey];
+    node [fontname="Arial", fontsize=12, style=filled];
+    edge [fontname="Arial", fontsize=10];
+    
+    // Subgraph clusters
+    subgraph cluster_ui {
+        label="🖥️ User Interface";
+        style=filled;
+        color=lightblue;
+        
+        cli [label="CLI\nmain.py", shape=box, fillcolor=lightcyan];
+    }
+    
+    subgraph cluster_agent {
+        label="🤖 Core Agent";
+        style=filled;
+        color=lavender;
+        
+        core [label="KubeVirtAIAgent\nCore Engine", shape=box, fillcolor=thistle];
+        auth [label="Auth Manager\npkg/login.py", shape=box, fillcolor=thistle];
+        config [label="Configuration\nconfig/config.json", shape=box, fillcolor=thistle];
+        logger [label="TeeLogger\nSession Logging", shape=box, fillcolor=thistle];
+    }
+    
+    subgraph cluster_mcp {
+        label="🔧 Tool Management";
+        style=filled;
+        color=lightyellow;
+        
+        registry [label="Tool Registry\nManages all tools", shape=box, fillcolor=lightgoldenrodyellow];
+        shell [label="Shell Commands\nkubectl, virtctl", shape=box, fillcolor=lightgoldenrodyellow];
+    }
+    
+    subgraph cluster_mcpservers {
+        label="🛠️ Specialized Tools";
+        style=filled;
+        color=lightcoral;
+        
+        kubemcp [label="KubeVirt Tools\nCluster Detection\nVM Operations", shape=box, fillcolor=mistyrose];
+    }
+    
+    subgraph cluster_external {
+        label="🌐 External Systems";
+        style=filled;
+        color=lightgreen;
+        
+        k8s [label="Kubernetes\nKind/OpenShift\nKubeVirt", shape=cylinder, fillcolor=palegreen];
+        claude [label="Anthropic Claude\nVertex AI\nLLM", shape=ellipse, fillcolor=palegreen];
+        docs [label="Documentation\nK8s/OpenShift\nKubeVirt Docs", shape=note, fillcolor=palegreen];
+    }
+    
+    subgraph cluster_storage {
+        label="💾 Storage & Logs";
+        style=filled;
+        color=lightpink;
+        
+        logs [label="Session Logs\nlogs/", shape=folder, fillcolor=lavenderblush];
+    }
+    
+    // Main conversation flow
+    cli -> core [label="user query", color=blue, penwidth=3];
+    core -> claude [label="AI conversation", color=green, penwidth=3];
+    
+    // Tool execution flow
+    core -> registry [label="get tools", color=purple, penwidth=2];
+    registry -> kubemcp [label="use KubeVirt tools", color=purple, penwidth=2];
+    registry -> shell [label="use shell commands", color=purple, penwidth=2];
+    
+    // Cluster interaction
+    kubemcp -> k8s [label="cluster ops", color=red, penwidth=3];
+    shell -> k8s [label="kubectl/virtctl", color=red, penwidth=2];
+    
+    // Documentation reference (bidirectional)
+    core -> docs [label="reference", color=green, penwidth=1, dir=both];
+    
+    // Logging
+    logger -> logs [label="session logs", color=gray, penwidth=1];
+    
+    // Return flow - results come back
+    claude -> core [label="tool requests", color=green, penwidth=2, style=dashed];
+    k8s -> core [label="results", color=red, penwidth=2, style=dashed];
+}
