@@ -55,6 +55,12 @@ Basic workflow - EXECUTE IMMEDIATELY:
 11. FAST CLEANUP: kubectl delete namespace kubevirt-test-$RANDOM_ID --force --grace-period=0
 12. DO NOT attempt to debug or fix problems
 
+DRY-RUN MODE:
+- If in dry-run mode, commands will be logged to an execution plan file instead of being executed
+- Focus on creating a comprehensive, reviewable plan of all actions that would be taken
+- Include all kubectl commands, file creations, and test operations in the plan
+- Provide clear explanations for each step in the plan
+
 CRITICAL EXECUTION RULES:
 - You MUST use available tools to fulfill ALL requests immediately
 - **CLUSTER ENVIRONMENT**: Cluster is pre-configured - KUBECONFIG, CLUSTER_TYPE, and DOCS_FOLDER are already set

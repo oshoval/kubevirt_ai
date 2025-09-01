@@ -57,12 +57,17 @@ def load_environment():
 class KubeVirtAIAgent:
     """Main AI agent for KubeVirt operations using Anthropic Claude."""
 
-    def __init__(self, auth_method: str = "vertex_ai"):
+    def __init__(self, auth_method: str = "vertex_ai", dry_run: bool = False):
         self.auth_method = auth_method
+        self.dry_run = dry_run
         self.client = None
         self.mcp_registry = MCPRegistry()
         self.config = self._load_config()
         self.agent_prompt = self._load_agent_prompt()
+
+        # Initialize dry-run plan file if needed
+        if self.dry_run:
+            self._init_plan_file()
 
         # Initialize authentication
         self._authenticate()
@@ -166,6 +171,17 @@ class KubeVirtAIAgent:
         try:
             # Escape Rich markup in command to prevent parsing errors
             safe_command = command.replace("[", "\\[").replace("]", "\\]")
+
+            if self.dry_run:
+                # In dry-run mode, just log the command and return a simulated result
+                console.print(f"[yellow]DRY-RUN: Would execute: {safe_command}[/yellow]")
+
+                # Log command to plan file
+                self._log_command_to_plan(command)
+
+                # Return a simulated success response
+                return f"[DRY-RUN] Command would be executed: {command}"
+
             console.print(f"[blue]Executing: {safe_command}[/blue]")
 
             # Subprocess automatically inherits the current process environment (os.environ)
@@ -302,6 +318,31 @@ class KubeVirtAIAgent:
         safe_message = message.replace("[", "\\[").replace("]", "\\]")
         console.print(f"[red]✗ {safe_message}[/red]")
 
+    def _init_plan_file(self):
+        """Initialize the execution plan file for dry-run mode."""
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        self.plan_file = f"kubevirt_ai_agent_logs/execution-plan-{timestamp}.sh"
+
+        # Ensure logs directory exists
+        os.makedirs("kubevirt_ai_agent_logs", exist_ok=True)
+
+        # Create plan file with header
+        with open(self.plan_file, 'w') as f:
+            f.write("#!/bin/bash\n")
+            f.write("# KubeVirt AI Agent Execution Plan\n")
+            f.write(f"# Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
+            f.write("# Run this script to execute the planned commands\n\n")
+            f.write("set -e  # Exit on any error\n\n")
+
+        console.print(f"[yellow]DRY-RUN mode: Execution plan will be saved to {self.plan_file}[/yellow]")
+
+    def _log_command_to_plan(self, command: str):
+        """Log a command to the execution plan file."""
+        if hasattr(self, 'plan_file'):
+            with open(self.plan_file, 'a') as f:
+                f.write(f"# Command: {command}\n")
+                f.write(f"{command}\n\n")
+
     async def _execute_tool_call(self, tool_call):
         """Execute a single tool call and return the result."""
         tool_name = tool_call.name
@@ -418,6 +459,7 @@ Examples:
   python main.py --query "create a VM and test basic connectivity"
   python main.py --query "test live migration functionality"
   python main.py --query "verify KubeVirt installation" --file cluster-info.yaml
+  python main.py --query "create VMs for testing" --dry-run
   python main.py --list-mcps
   python main.py --auth-status
         """,
@@ -445,6 +487,8 @@ Examples:
 
     parser.add_argument("--auth-status", action="store_true", help="Check authentication status")
 
+    parser.add_argument("--dry-run", action="store_true", help="Generate execution plan without running commands")
+
     args = parser.parse_args()
 
     # Handle auth status check
@@ -463,7 +507,7 @@ Examples:
             )
         )
 
-        agent = KubeVirtAIAgent(auth_method=args.auth_method)
+        agent = KubeVirtAIAgent(auth_method=args.auth_method, dry_run=args.dry_run)
 
         # Handle MCP listing
         if args.list_mcps:
