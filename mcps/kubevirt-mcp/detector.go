@@ -194,7 +194,7 @@ func testInClusterConnectivity() ClusterInfo {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	cmd := exec.CommandContext(ctx, "kubectl", "cluster-info")
+	cmd := exec.CommandContext(ctx, "kubectl", "get", "pods")
 	output, err := cmd.CombinedOutput()
 
 	if err != nil {
