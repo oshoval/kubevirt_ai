@@ -21,6 +21,14 @@ type JSONRPCResponse struct {
 	Error   *RPCError   `json:"error,omitempty"`
 }
 
+// Helper function to ensure ID is never nil
+func safeID(id interface{}) interface{} {
+	if id == nil {
+		return 0 // Use 0 as default ID for null requests
+	}
+	return id
+}
+
 type RPCError struct {
 	Code    int    `json:"code"`
 	Message string `json:"message"`
@@ -36,11 +44,33 @@ func main() {
 	for {
 		var req JSONRPCRequest
 		if err := decoder.Decode(&req); err != nil {
+			// Log the error but don't send a response for malformed JSON
+			log.Printf("Failed to decode JSON-RPC request: %v", err)
 			break
 		}
 
+		// Validate that we have a proper request
+		if req.JSONRPC != "2.0" {
+			log.Printf("Invalid JSON-RPC version: %s", req.JSONRPC)
+			continue
+		}
+
+		if req.Method == "" {
+			log.Printf("Missing method in request")
+			// Send error response with proper ID handling
+			resp := JSONRPCResponse{
+				JSONRPC: "2.0",
+				ID:      safeID(req.ID),
+				Error:   &RPCError{Code: -32600, Message: "Invalid Request: missing method"},
+			}
+			encoder.Encode(resp)
+			continue
+		}
+
 		resp := handleRequest(req)
-		encoder.Encode(resp)
+		if err := encoder.Encode(resp); err != nil {
+			log.Printf("Failed to encode response: %v", err)
+		}
 	}
 }
 
@@ -49,7 +79,7 @@ func handleRequest(req JSONRPCRequest) JSONRPCResponse {
 	case "initialize":
 		return JSONRPCResponse{
 			JSONRPC: "2.0",
-			ID:      req.ID,
+			ID:      safeID(req.ID),
 			Result: map[string]interface{}{
 				"protocolVersion": "2024-11-05",
 				"serverInfo":      map[string]interface{}{"name": "kubevirt-mcp", "version": "1.0.0"},
@@ -60,7 +90,7 @@ func handleRequest(req JSONRPCRequest) JSONRPCResponse {
 	case "tools/list":
 		return JSONRPCResponse{
 			JSONRPC: "2.0",
-			ID:      req.ID,
+			ID:      safeID(req.ID),
 			Result: map[string]interface{}{
 				"tools": []map[string]interface{}{
 					{
@@ -120,13 +150,13 @@ func handleRequest(req JSONRPCRequest) JSONRPCResponse {
 			if err != nil {
 				return JSONRPCResponse{
 					JSONRPC: "2.0",
-					ID:      req.ID,
+					ID:      safeID(req.ID),
 					Error:   &RPCError{Code: -32603, Message: err.Error()},
 				}
 			}
 			return JSONRPCResponse{
 				JSONRPC: "2.0",
-				ID:      req.ID,
+				ID:      safeID(req.ID),
 				Result: map[string]interface{}{
 					"content": []map[string]interface{}{
 						{"type": "text", "text": result},
@@ -140,7 +170,7 @@ func handleRequest(req JSONRPCRequest) JSONRPCResponse {
 			if err := json.Unmarshal(params.Arguments, &vmParams); err != nil {
 				return JSONRPCResponse{
 					JSONRPC: "2.0",
-					ID:      req.ID,
+					ID:      safeID(req.ID),
 					Error:   &RPCError{Code: -32602, Message: "Invalid parameters: " + err.Error()},
 				}
 			}
@@ -157,14 +187,14 @@ func handleRequest(req JSONRPCRequest) JSONRPCResponse {
 			if err != nil {
 				return JSONRPCResponse{
 					JSONRPC: "2.0",
-					ID:      req.ID,
+					ID:      safeID(req.ID),
 					Error:   &RPCError{Code: -32603, Message: err.Error()},
 				}
 			}
 
 			return JSONRPCResponse{
 				JSONRPC: "2.0",
-				ID:      req.ID,
+				ID:      safeID(req.ID),
 				Result: map[string]interface{}{
 					"content": []map[string]interface{}{
 						{"type": "text", "text": result},
@@ -175,14 +205,14 @@ func handleRequest(req JSONRPCRequest) JSONRPCResponse {
 
 		return JSONRPCResponse{
 			JSONRPC: "2.0",
-			ID:      req.ID,
+			ID:      safeID(req.ID),
 			Error:   &RPCError{Code: -32601, Message: "Method not found"},
 		}
 
 	default:
 		return JSONRPCResponse{
 			JSONRPC: "2.0",
-			ID:      req.ID,
+			ID:      safeID(req.ID),
 			Error:   &RPCError{Code: -32601, Message: "Method not found"},
 		}
 	}
