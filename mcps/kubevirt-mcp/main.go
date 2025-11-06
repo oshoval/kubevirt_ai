@@ -44,8 +44,9 @@ func main() {
 	for {
 		var req JSONRPCRequest
 		if err := decoder.Decode(&req); err != nil {
-			// Log the error but don't send a response for malformed JSON
-			log.Printf("Failed to decode JSON-RPC request: %v", err)
+			if err.Error() != "EOF" {
+				log.Printf("Failed to decode JSON-RPC request: %v", err)
+			}
 			break
 		}
 
